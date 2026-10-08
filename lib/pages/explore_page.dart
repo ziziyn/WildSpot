@@ -242,7 +242,7 @@ class _DetailSheet extends StatelessWidget {
           Text('NEARBY DISCOVERIES',
               style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   fontSize: 14)),
           SizedBox(height: 12),
           _DiscoveryList(),
@@ -410,7 +410,7 @@ class _TrendCard extends StatelessWidget {
                   child: Text('WEEKLY BIODIVERSITY TREND',
                       style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                           fontSize: 14)),
                 ),
                 Icon(Icons.info_outline, color: _muted, size: 18),
@@ -530,6 +530,44 @@ class _LegendDot extends StatelessWidget {
 }
 
 // ---- Nearby discoveries -------------------------------------------------------
+class _DiscoveryItem extends StatelessWidget {
+  const _DiscoveryItem({required this.discovery});
+
+  final _Discovery discovery;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              discovery.imageUrl,
+              width: 96,
+              height: 96,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 96,
+                height: 96,
+                color: _card,
+                child: const Icon(Icons.image_not_supported_outlined,
+                    color: _muted),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(discovery.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: _muted, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
 class _DiscoveryList extends StatelessWidget {
   const _DiscoveryList();
 
@@ -541,37 +579,7 @@ class _DiscoveryList extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: _discoveries.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (_, i) {
-          final d = _discoveries[i];
-          return SizedBox(
-            width: 96,
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.network(
-                    d.imageUrl,
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 96,
-                      height: 96,
-                      color: _card,
-                      child: const Icon(Icons.image_not_supported_outlined,
-                          color: _muted),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(d.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: _muted, fontSize: 12)),
-              ],
-            ),
-          );
-        },
+        itemBuilder: (_, i) => _DiscoveryItem(discovery: _discoveries[i]),
       ),
     );
   }
