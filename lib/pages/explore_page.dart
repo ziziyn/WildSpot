@@ -62,7 +62,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Image.network(
               _mapImage,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (context, error, stack) =>
                   Container(color: const Color(0xFF2A332F)),
             ),
           ),
@@ -540,7 +540,7 @@ class _DiscoveryList extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _discoveries.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (_, i) {
           final d = _discoveries[i];
           return SizedBox(
@@ -554,7 +554,7 @@ class _DiscoveryList extends StatelessWidget {
                     width: 96,
                     height: 96,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stack) => Container(
                       width: 96,
                       height: 96,
                       color: _card,
