@@ -66,7 +66,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               radius: 18,
               backgroundColor: const Color(0xFF2A332F),
               backgroundImage: NetworkImage(profileImageUrl),
-              onBackgroundImageError: (_, __) {},
+              onBackgroundImageError: (error, stack) {},
             ),
           ),
         ),

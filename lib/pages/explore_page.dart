@@ -62,7 +62,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Image.network(
               _mapImage,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (context, error, stack) =>
                   Container(color: const Color(0xFF2A332F)),
             ),
           ),
