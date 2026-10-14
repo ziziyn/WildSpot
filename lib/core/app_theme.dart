@@ -1,37 +1,105 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────
-//  WildSpot Design Tokens
+//  Brand tokens (non-M3 colors) — ThemeExtension
 // ─────────────────────────────────────────────
 
-/// Palet warna bertema hutan yang dalam dan desaturasi.
-abstract final class WsColors {
-  // Backgrounds
-  static const bgDeep    = Color(0xFF0F1511);
-  static const bgBase    = Color(0xFF131A16);
-  static const bgSurface = Color(0xFF1A211E);
-  static const bgCard    = Color(0xFF1E2922);
-  static const bgCardAlt = Color(0xFF243020);
+/// Brand colors with no native Material 3 role.
+///
+/// This is the single source of truth for the brand green (also used as the
+/// M3 seed) and the amber accent used for missions/streaks.
+/// Access via `context.wsBrand`.
+@immutable
+class WsBrandColors extends ThemeExtension<WsBrandColors> {
+  const WsBrandColors({
+    required this.forest,
+    required this.amber,
+    required this.amberFaint,
+  });
 
-  // Accent — hijau hutan
-  static const green      = Color(0xFF4CD964);
-  static const greenDim   = Color(0xFF2E6B40);
-  static const greenFaint = Color(0xFF1A3324);
+  /// Forest green — M3 seed color and AppBar background.
+  final Color forest;
 
-  // Amber — highlight misi/streaking
-  static const amber      = Color(0xFFE07B12);
-  static const amberFaint = Color(0xFF3D2208);
+  /// Amber highlight for missions / streaks.
+  final Color amber;
 
-  // Text
-  static const textPrimary = Color(0xFFEAF2EC);
-  static const textMuted   = Color(0xFF8A9E93);
-  static const textDim     = Color(0xFF5A6E62);
+  /// Amber container tone.
+  final Color amberFaint;
 
-  // Lain-lain
-  static const divider = Color(0x14FFFFFF);
+  static const light = WsBrandColors(
+    forest: Color(0xFF2E6B40),
+    amber: Color(0xFFB85C00),
+    amberFaint: Color(0xFFFFEDD8),
+  );
+
+  @override
+  WsBrandColors copyWith({Color? forest, Color? amber, Color? amberFaint}) =>
+      WsBrandColors(
+        forest: forest ?? this.forest,
+        amber: amber ?? this.amber,
+        amberFaint: amberFaint ?? this.amberFaint,
+      );
+
+  @override
+  WsBrandColors lerp(ThemeExtension<WsBrandColors>? other, double t) {
+    if (other is! WsBrandColors) return this;
+    return WsBrandColors(
+      forest: Color.lerp(forest, other.forest, t)!,
+      amber: Color.lerp(amber, other.amber, t)!,
+      amberFaint: Color.lerp(amberFaint, other.amberFaint, t)!,
+    );
+  }
 }
 
-/// Radius sudut organik & lembut.
+// ─────────────────────────────────────────────
+//  Monospace typography — ThemeExtension
+// ─────────────────────────────────────────────
+
+/// Monospace (IBM Plex Mono) styles for numbers / stats, which have no slot
+/// in the standard M3 [TextTheme]. Access via `context.wsMono`.
+@immutable
+class WsMonoText extends ThemeExtension<WsMonoText> {
+  const WsMonoText({required this.stat});
+
+  /// Stat / numeric display (22sp, w700).
+  final TextStyle stat;
+
+  static const String fontFamily = 'IBM Plex Mono';
+
+  /// Builds the extension with colors derived from the given [ColorScheme].
+  factory WsMonoText.fromColorScheme(ColorScheme scheme) => WsMonoText(
+        stat: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+      );
+
+  @override
+  WsMonoText copyWith({TextStyle? stat}) => WsMonoText(stat: stat ?? this.stat);
+
+  @override
+  WsMonoText lerp(ThemeExtension<WsMonoText>? other, double t) {
+    if (other is! WsMonoText) return this;
+    return WsMonoText(stat: TextStyle.lerp(stat, other.stat, t)!);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Context accessors
+// ─────────────────────────────────────────────
+
+extension WsThemeContext on BuildContext {
+  WsMonoText get wsMono => Theme.of(this).extension<WsMonoText>()!;
+  WsBrandColors get wsBrand => Theme.of(this).extension<WsBrandColors>()!;
+}
+
+// ─────────────────────────────────────────────
+//  Non-color design tokens
+// ─────────────────────────────────────────────
+
+/// Soft, organic corner radii.
 abstract final class WsRadius {
   static const sm   = Radius.circular(10);
   static const md   = Radius.circular(16);
@@ -40,95 +108,132 @@ abstract final class WsRadius {
   static const pill = Radius.circular(100);
 }
 
-/// Shadow halus bertema alam.
+/// Soft nature-themed shadows, resolved from the active theme.
 abstract final class WsShadow {
-  static List<BoxShadow> card = [
-    BoxShadow(
-      color: Colors.black.withAlpha(60),
-      blurRadius: 18,
-      offset: const Offset(0, 6),
-    ),
-  ];
+  static List<BoxShadow> card(BuildContext context) => [
+        BoxShadow(
+          color: Theme.of(context).colorScheme.shadow.withAlpha(60),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+        ),
+      ];
 
-  static List<BoxShadow> greenGlow = [
-    BoxShadow(
-      color: WsColors.green.withAlpha(35),
-      blurRadius: 24,
-      offset: const Offset(0, 8),
-    ),
-  ];
-}
-
-// ─────────────────────────────────────────────
-//  Typography — font lokal tanpa package eksternal
-// ─────────────────────────────────────────────
-
-abstract final class WsText {
-  static const _sora    = 'Sora';
-  static const _dmSans  = 'DM Sans';
-  static const _ibmMono = 'IBM Plex Mono';
-
-  /// Display / hero heading (Sora).
-  static TextStyle display({
-    double size = 28,
-    Color color = WsColors.textPrimary,
-    FontWeight weight = FontWeight.w700,
-  }) =>
-      TextStyle(fontFamily: _sora, fontSize: size, color: color, fontWeight: weight);
-
-  /// Heading section (Sora).
-  static TextStyle heading({
-    double size = 18,
-    Color color = WsColors.textPrimary,
-    FontWeight weight = FontWeight.w600,
-  }) =>
-      TextStyle(fontFamily: _sora, fontSize: size, color: color, fontWeight: weight);
-
-  /// Body teks sehari-hari (DM Sans).
-  static TextStyle body({
-    double size = 14,
-    Color color = WsColors.textPrimary,
-    FontWeight weight = FontWeight.w400,
-  }) =>
-      TextStyle(fontFamily: _dmSans, fontSize: size, color: color, fontWeight: weight);
-
-  /// Label kecil / caption (DM Sans).
-  static TextStyle label({
-    double size = 12,
-    Color color = WsColors.textMuted,
-    FontWeight weight = FontWeight.w500,
-  }) =>
-      TextStyle(fontFamily: _dmSans, fontSize: size, color: color, fontWeight: weight);
-
-  /// Angka / stat monospace (IBM Plex Mono).
-  static TextStyle mono({
-    double size = 22,
-    Color color = WsColors.textPrimary,
-    FontWeight weight = FontWeight.w700,
-  }) =>
-      TextStyle(fontFamily: _ibmMono, fontSize: size, color: color, fontWeight: weight);
+  static List<BoxShadow> greenGlow(BuildContext context) => [
+        BoxShadow(
+          color: context.wsBrand.forest.withAlpha(35),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+        ),
+      ];
 }
 
 // ─────────────────────────────────────────────
 //  ThemeData factory
 // ─────────────────────────────────────────────
 
+const _fontSora   = 'Sora';
+const _fontDmSans = 'DM Sans';
+
 ThemeData buildWsTheme() {
-  return ThemeData.dark(useMaterial3: true).copyWith(
-    scaffoldBackgroundColor: WsColors.bgBase,
-    colorScheme: const ColorScheme.dark(
-      primary: WsColors.green,
-      surface: WsColors.bgSurface,
-      onSurface: WsColors.textPrimary,
+  const brand = WsBrandColors.light;
+
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: brand.forest,
+    brightness: Brightness.light,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: colorScheme.surface,
+
+    // ── Typography (Sora / DM Sans) ─────────────────────────────────────
+    textTheme: TextTheme(
+      titleLarge: TextStyle(
+        fontFamily: _fontSora,
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
+      displayMedium: TextStyle(
+        fontFamily: _fontSora,
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: colorScheme.onSurface,
+      ),
+      bodyLarge: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: colorScheme.onSurface,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: colorScheme.onSurface,
+      ),
+      bodySmall: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      labelLarge: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
+      labelMedium: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: _fontDmSans,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: colorScheme.onSurfaceVariant,
+      ),
     ),
-    textTheme: const TextTheme(
-      bodyMedium: TextStyle(fontFamily: 'DM Sans', color: WsColors.textPrimary),
-      bodySmall:  TextStyle(fontFamily: 'DM Sans', color: WsColors.textMuted),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: WsColors.bgSurface,
-      surfaceTintColor: Colors.transparent,
+
+    // ── Card ────────────────────────────────────────────────────────────
+    cardTheme: CardThemeData(
+      color: colorScheme.surfaceContainer,
       elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(WsRadius.lg),
+      ),
     ),
+
+    // ── App Bar ─────────────────────────────────────────────────────────
+    appBarTheme: AppBarTheme(
+      backgroundColor: brand.forest,
+      surfaceTintColor: Colors.transparent,
+      elevation: 2,
+      scrolledUnderElevation: 4,
+      shadowColor: colorScheme.shadow.withAlpha(0x42), // == Colors.black26
+      foregroundColor: colorScheme.onPrimary,          // == white in M3 light
+      titleTextStyle: TextStyle(
+        fontFamily: _fontSora,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: colorScheme.onPrimary,
+      ),
+    ),
+
+    // ── Divider ─────────────────────────────────────────────────────────
+    dividerTheme: DividerThemeData(
+      color: colorScheme.outlineVariant,
+      thickness: 1,
+    ),
+
+    // ── Extensions ──────────────────────────────────────────────────────
+    extensions: <ThemeExtension<dynamic>>[
+      brand,
+      WsMonoText.fromColorScheme(colorScheme),
+    ],
   );
 }

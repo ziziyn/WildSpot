@@ -26,7 +26,6 @@ class MainLayout extends StatelessWidget {
       appBar: CustomAppBar(
         title: title,
         profileImageUrl: profileImageUrl,
-        onFilterTap: () {},
         onNotificationTap: () {},
         onSettingsTap: () {},
         onProfileTap: () {},

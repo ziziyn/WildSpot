@@ -25,25 +25,29 @@ class BottomNav extends StatelessWidget {
     _NavItem('Community', Icons.people_outline, Icons.people),
   ];
 
-  static const _green = Color(0xFF4CD964);
-  static const _inactive = Color(0xFFB5BDB9);
+  // light-mode tokens
+  static const _surface  = Color(0xFFE4F0E8); // surfaceContainer hijau pastel
+  static const _active   = Color(0xFF2E6B40); // primary hijau hutan
+  static const _inactive = Color(0xFF4A6356); // onSurfaceVariant muted
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1A211E),
+      color: _surface,
       child: SafeArea(
         top: false,
         child: Container(
           height: 64,
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.white10)),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: _active.withAlpha(40)),
+            ),
           ),
           child: Row(
             children: List.generate(_items.length, (i) {
               final item = _items[i];
               final selected = i == currentIndex;
-              final color = selected ? _green : _inactive;
+              final color = selected ? _active : _inactive;
               return Expanded(
                 child: InkWell(
                   onTap: () => onTap(i),
@@ -74,4 +78,4 @@ class BottomNav extends StatelessWidget {
       ),
     );
   }
-}
+}

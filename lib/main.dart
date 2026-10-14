@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'core/app_theme.dart';
 import 'layouts/main_layout.dart';
+import 'pages/home_page.dart';
 import 'pages/explore_page.dart';
 import 'pages/observation_page.dart';
-import 'pages/camera_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +29,7 @@ class WildspotApp extends StatelessWidget {
       title: 'WildSpot',
       debugShowCheckedModeBanner: false,
       theme: buildWsTheme(),
-      home: const CameraPage(), //SWITCH HEREEEE
+      home: const AppShell(),
     );
   }
 }
@@ -43,10 +43,10 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _index = 1;
+  int _index = 0;
 
   static const _titles = [
-    'Home',
+    'WildSpot',
     'Explore Wildlife',
     'Observation',
     'Missions',
@@ -54,6 +54,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   Widget _pageFor(int index) {
+    if (index == 0) return const HomePage();
     if (index == 1) return const ExploreScreen();
     if (index == 2) return const ObservationScreen();
 

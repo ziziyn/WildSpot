@@ -1,9 +1,20 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../layouts/main_layout.dart';
 import 'explore_page.dart';
+
+// ═══════════════════════════════════════════════════════════════════
+//  ACCENT KHUSUS HALAMAN INI
+//  Warna aksen yang tidak punya padanan di ColorScheme; nilainya sama
+//  persis dengan desain awal (screenshot) agar tampilan tidak berubah.
+// ═══════════════════════════════════════════════════════════════════
+
+const _kMedalRibbon = Color(0xFFD32F2F); // pita merah medali
+const _kMedalStar = Color(0xFFFFB300); // bintang kuning medali
+const _kFlame = Color(0xFFFF6D00); // api oranye badge STREAKING
+const _kChipFungi = Color(0xFFE07B12); // chip kategori Fungi
+const _kChipFlora = Color(0xFF2CB67D); // chip kategori Flora
 
 // ═══════════════════════════════════════════════════════════════════
 //  MOCK DATA
@@ -108,7 +119,7 @@ class _HomePageState extends State<HomePage>
           // ── top padding (app bar sudah ada di MainLayout)
           const SliverToBoxAdapter(child: SizedBox(height: 4)),
 
-          // ── ① Greeting
+          // ── ① Greeting + cuaca lokal
           const SliverToBoxAdapter(child: _GreetingSection()),
 
           // ── ② Your Discoveries stats
@@ -135,13 +146,15 @@ class _HomePageState extends State<HomePage>
             ),
           ),
 
-          // ── ④ Nearby Discoveries grid
-          _NearbyDiscoveriesGrid(items: _kNearbyDiscoveries),
+          // ── ④ Nearby Discoveries carousel (horizontal)
+          const SliverToBoxAdapter(
+            child: _NearbyDiscoveriesCarousel(items: _kNearbyDiscoveries),
+          ),
 
           // ── Load more + bottom breathing room
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 32),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 32),
               child: _LoadMoreButton(),
             ),
           ),
@@ -160,35 +173,109 @@ class _GreetingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // "Hello, Ranger 👋"
-          RichText(
-            text: TextSpan(
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(
-                  text: 'Hello, Ranger ',
-                  style: WsText.display(size: 30, weight: FontWeight.w700),
+                // "Hello," — label kecil di atas
+                Text(
+                  'Hello,',
+                  style: tt.bodyMedium!.copyWith(
+                    fontSize: 15,
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                const TextSpan(
-                  text: '👋',
-                  style: TextStyle(fontSize: 28),
+                const SizedBox(height: 2),
+                // "Ranger 👋" — display besar di bawah
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Ranger ',
+                        style: tt.displayMedium!.copyWith(fontSize: 32, fontWeight: FontWeight.w800),
+                      ),
+                      const TextSpan(
+                        text: '👋',
+                        style: TextStyle(fontSize: 30),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'The forest is waiting for your observations today.',
+                  style: tt.bodyMedium!.copyWith(
+                    fontSize: 14,
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 14),
+          const LocalWeatherWidget(),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  LOCAL WEATHER WIDGET
+// ═══════════════════════════════════════════════════════════════════
+
+/// Ringkasan cuaca lokal. Saat ini memakai data statis; nilai default
+/// bisa diganti lewat constructor ketika sumber data cuaca sudah ada.
+class LocalWeatherWidget extends StatelessWidget {
+  const LocalWeatherWidget({
+    super.key,
+    this.temperature = '28°C',
+    this.condition = 'Sunny',
+    this.icon = Icons.wb_sunny_rounded,
+  });
+
+  final String temperature;
+  final String condition;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        borderRadius: const BorderRadius.all(WsRadius.xl),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: cs.onSurface, size: 30),
           const SizedBox(height: 6),
           Text(
-            'The forest is waiting for your observations today.',
-            style: WsText.body(
-              size: 14,
-              color: WsColors.textMuted,
-              weight: FontWeight.w400,
+            temperature,
+            style: tt.titleLarge?.copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            condition,
+            style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),
@@ -205,13 +292,16 @@ class _DiscoveriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: WsColors.bgCard,
+        color: cs.surfaceContainerLowest, // surface putih bersih
         borderRadius: const BorderRadius.all(WsRadius.lg),
-        border: Border.all(color: WsColors.divider),
-        boxShadow: WsShadow.card,
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: WsShadow.card(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,20 +311,20 @@ class _DiscoveriesCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Your Discoveries',
-                  style: WsText.heading(size: 16, weight: FontWeight.w700)),
+                  style: tt.titleLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
               GestureDetector(
                 onTap: () {},
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('VIEW ALL',
-                        style: WsText.label(
-                            size: 12,
-                            color: WsColors.green,
-                            weight: FontWeight.w700)),
+                        style: tt.labelMedium!.copyWith(
+                            fontSize: 12,
+                            color: cs.primary,
+                            fontWeight: FontWeight.w700)),
                     const SizedBox(width: 2),
-                    const Icon(Icons.chevron_right,
-                        color: WsColors.green, size: 18),
+                    Icon(Icons.chevron_right,
+                        color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -244,30 +334,30 @@ class _DiscoveriesCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 3 stat columns
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: _StatColumn(
                   icon: Icons.eco_outlined,
-                  iconColor: WsColors.green,
+                  iconColor: cs.primary,
                   label: 'Total',
                   value: '128',
                 ),
               ),
-              _VerticalDivider(),
+              const _VerticalDivider(),
               Expanded(
                 child: _StatColumn(
                   icon: Icons.location_on_outlined,
-                  iconColor: WsColors.green,
+                  iconColor: cs.primary,
                   label: 'Spots',
                   value: '42',
                 ),
               ),
-              _VerticalDivider(),
+              const _VerticalDivider(),
               Expanded(
                 child: _StatColumn(
                   icon: Icons.trending_up_rounded,
-                  iconColor: WsColors.green,
+                  iconColor: cs.primary,
                   label: 'Rank',
                   value: '#12',
                   valueMono: true,
@@ -277,7 +367,7 @@ class _DiscoveriesCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 14),
-          const Divider(color: WsColors.divider, height: 1),
+          Divider(color: cs.outlineVariant, height: 1),
           const SizedBox(height: 12),
 
           // Community Impact row
@@ -286,28 +376,28 @@ class _DiscoveriesCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: WsColors.amberFaint,
+                  color: context.wsBrand.amberFaint,
                   borderRadius: const BorderRadius.all(WsRadius.sm),
-                  border: Border.all(color: WsColors.amber.withAlpha(60)),
+                  border: Border.all(color: context.wsBrand.amber.withAlpha(60)),
                 ),
-                child: const Icon(Icons.people_alt_outlined,
-                    color: WsColors.amber, size: 18),
+                child: Icon(Icons.people_alt_outlined,
+                    color: context.wsBrand.amber, size: 18),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('COMMUNITY IMPACT',
-                      style: WsText.label(
-                          size: 10,
-                          color: WsColors.textDim,
-                          weight: FontWeight.w600)),
+                      style: tt.labelMedium!.copyWith(
+                          fontSize: 10,
+                          color: cs.outline,
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text('CONSERVATION HERO',
-                      style: WsText.heading(
-                          size: 13,
-                          color: WsColors.textPrimary,
-                          weight: FontWeight.w800)),
+                      style: tt.titleLarge!.copyWith(
+                          fontSize: 13,
+                          color: cs.onSurface,
+                          fontWeight: FontWeight.w800)),
                 ],
               ),
               const Spacer(),
@@ -315,16 +405,16 @@ class _DiscoveriesCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text('CONTRIBUTIONS',
-                      style: WsText.label(
-                          size: 10,
-                          color: WsColors.textDim,
-                          weight: FontWeight.w600)),
+                      style: tt.labelMedium!.copyWith(
+                          fontSize: 10,
+                          color: cs.outline,
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text('+4 THIS WEEK',
-                      style: WsText.mono(
-                        size: 13,
-                        color: WsColors.green,
-                        weight: FontWeight.w700,
+                      style: context.wsMono.stat.copyWith(
+                        fontSize: 13,
+                        color: cs.primary,
+                        fontWeight: FontWeight.w700,
                       )),
                 ],
               ),
@@ -353,22 +443,24 @@ class _StatColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: iconColor, size: 22),
         const SizedBox(height: 6),
-        Text(label, style: WsText.label(size: 11, color: WsColors.textMuted)),
+        Text(label, style: tt.labelMedium!.copyWith(fontSize: 11, color: cs.onSurfaceVariant)),
         const SizedBox(height: 3),
         valueMono
             ? Text(value,
-                style: WsText.mono(
-                  size: 20,
-                  color: WsColors.textPrimary,
-                  weight: FontWeight.w700,
+                style: context.wsMono.stat.copyWith(
+                  fontSize: 20,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w700,
                 ))
             : Text(value,
-                style: WsText.mono(size: 20, color: WsColors.textPrimary)),
+                style: context.wsMono.stat.copyWith(fontSize: 20, color: cs.onSurface)),
       ],
     );
   }
@@ -382,7 +474,7 @@ class _VerticalDivider extends StatelessWidget {
         width: 1,
         height: 52,
         margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: WsColors.divider,
+        color: Theme.of(context).colorScheme.outlineVariant,
       );
 }
 
@@ -395,13 +487,15 @@ class _ActiveMissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: WsColors.bgCardAlt,
+        color: cs.primary, // hijau hutan solid
         borderRadius: const BorderRadius.all(WsRadius.lg),
-        border: Border.all(color: WsColors.greenDim.withAlpha(100)),
-        boxShadow: WsShadow.greenGlow,
+        boxShadow: WsShadow.greenGlow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,16 +503,40 @@ class _ActiveMissionCard extends StatelessWidget {
           // ── header row
           Row(
             children: [
-              const Icon(Icons.military_tech_outlined,
-                  color: WsColors.amber, size: 20),
+              // Medali 2 warna: ribbon merah (atas) + bintang kuning (bawah)
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // ribbon merah — clip bagian atas 38%
+                    ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: 0.38,
+                        child: const Icon(Icons.military_tech,
+                            color: _kMedalRibbon, size: 22),
+                      ),
+                    ),
+                    // bintang kuning — clip bagian bawah 62%
+                    ClipRect(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        heightFactor: 0.62,
+                        child: const Icon(Icons.military_tech,
+                            color: _kMedalStar, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Active Mission',
-                  style: WsText.heading(
-                      size: 15,
-                      color: WsColors.textPrimary,
-                      weight: FontWeight.w800),
+                  style: tt.titleLarge!.copyWith(
+                      fontSize: 15, color: cs.onPrimary, fontWeight: FontWeight.w800),
                 ),
               ),
               // STREAKING badge
@@ -426,21 +544,21 @@ class _ActiveMissionCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: WsColors.amberFaint,
+                  color: cs.onPrimary.withAlpha(30),
                   borderRadius: const BorderRadius.all(WsRadius.pill),
-                  border: Border.all(color: WsColors.amber.withAlpha(80)),
+                  border: Border.all(color: cs.onPrimary.withAlpha(60)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.local_fire_department_rounded,
-                        color: WsColors.amber, size: 14),
+                        color: _kFlame, size: 14),
                     const SizedBox(width: 4),
                     Text('STREAKING',
-                        style: WsText.label(
-                            size: 10,
-                            color: WsColors.amber,
-                            weight: FontWeight.w700)),
+                        style: tt.labelMedium!.copyWith(
+                            fontSize: 10,
+                            color: cs.onPrimary,
+                            fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
@@ -452,15 +570,13 @@ class _ActiveMissionCard extends StatelessWidget {
           // ── mission name
           Text(
             'Native Pollinator Census',
-            style: WsText.heading(
-                size: 18,
-                color: WsColors.textPrimary,
-                weight: FontWeight.w700),
+            style: tt.titleLarge!.copyWith(
+                fontSize: 18, color: cs.onPrimary, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
             'Identify 5 different pollinator species in your local area.',
-            style: WsText.body(size: 13, color: WsColors.textMuted),
+            style: tt.bodyMedium!.copyWith(fontSize: 13, color: cs.onPrimary.withAlpha(200)),
           ),
 
           const SizedBox(height: 16),
@@ -470,42 +586,46 @@ class _ActiveMissionCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Progress',
-                  style: WsText.label(
-                      size: 12,
-                      color: WsColors.textMuted,
-                      weight: FontWeight.w500)),
+                  style: tt.labelMedium!.copyWith(
+                      fontSize: 12,
+                      color: cs.onPrimary.withAlpha(180),
+                      fontWeight: FontWeight.w500)),
               Text('3/5 (60%)',
-                  style: WsText.mono(
-                    size: 12,
-                    color: WsColors.green,
-                    weight: FontWeight.w600,
+                  style: context.wsMono.stat.copyWith(
+                    fontSize: 12,
+                    color: cs.onPrimary,
+                    fontWeight: FontWeight.w600,
                   )),
             ],
           ),
           const SizedBox(height: 8),
 
-          // ── progress bar
-          _ProgressBar(progress: 0.60),
+          // ── progress bar (fill putih kontras di atas primary gelap)
+          _ProgressBar(
+            progress: 0.60,
+            trackColor: cs.onPrimary.withAlpha(40),
+            fillColor: cs.onPrimary.withAlpha(230),
+          ),
 
           const SizedBox(height: 16),
 
           // ── CTA button
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
+            child: FilledButton(
               onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                foregroundColor: WsColors.textPrimary,
-                side: const BorderSide(color: WsColors.divider, width: 1.5),
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
                 shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(WsRadius.md)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text('View Mission Details',
-                  style: WsText.body(
-                      size: 14,
-                      color: WsColors.textPrimary,
-                      weight: FontWeight.w600)),
+                  style: tt.bodyMedium!.copyWith(
+                      fontSize: 14,
+                      color: cs.onPrimaryContainer,
+                      fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -515,11 +635,19 @@ class _ActiveMissionCard extends StatelessWidget {
 }
 
 class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.progress});
+  const _ProgressBar({
+    required this.progress,
+    this.trackColor,
+    this.fillColor,
+  });
   final double progress;
+  final Color? trackColor;
+  final Color? fillColor;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final fill = fillColor ?? cs.primary;
     return LayoutBuilder(
       builder: (context, constraints) {
         final total = constraints.maxWidth;
@@ -527,7 +655,7 @@ class _ProgressBar extends StatelessWidget {
           height: 8,
           width: total,
           decoration: BoxDecoration(
-            color: WsColors.bgBase,
+            color: trackColor ?? cs.surface,
             borderRadius: const BorderRadius.all(WsRadius.pill),
           ),
           child: Align(
@@ -538,11 +666,11 @@ class _ProgressBar extends StatelessWidget {
               width: total * progress.clamp(0.0, 1.0),
               height: 8,
               decoration: BoxDecoration(
-                color: WsColors.green,
+                color: fill,
                 borderRadius: const BorderRadius.all(WsRadius.pill),
                 boxShadow: [
                   BoxShadow(
-                    color: WsColors.green.withAlpha(80),
+                    color: fill.withAlpha(100),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -565,6 +693,8 @@ class _NearbyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -572,91 +702,92 @@ class _NearbyHeader extends StatelessWidget {
           width: 22,
           height: 22,
           decoration: BoxDecoration(
-            color: WsColors.greenFaint,
+            color: cs.primaryContainer,
             shape: BoxShape.circle,
-            border: Border.all(color: WsColors.green.withAlpha(120), width: 1.5),
+            border: Border.all(color: cs.primary.withAlpha(120), width: 1.5),
           ),
-          child: const Icon(Icons.radar, color: WsColors.green, size: 13),
+          child: Icon(Icons.radar, color: cs.primary, size: 13),
         ),
         const SizedBox(width: 8),
         Text('Nearby Discoveries',
-            style: WsText.heading(size: 17, weight: FontWeight.w700)),
+            style: tt.titleLarge!.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
         const Spacer(),
         Text('Within 5km',
-            style: WsText.label(
-                size: 12, color: WsColors.textMuted, weight: FontWeight.w500)),
+            style: tt.labelMedium!.copyWith(
+                fontSize: 12, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
       ],
     );
   }
 }
 
-/// SliverGrid 2-kolom untuk Nearby Discoveries.
-class _NearbyDiscoveriesGrid extends StatelessWidget {
-  const _NearbyDiscoveriesGrid({required this.items});
+/// Carousel horizontal untuk Nearby Discoveries.
+/// Lebar tiap kartu 75% lebar layar agar kartu berikutnya selalu
+/// mengintip dan menjadi petunjuk bahwa daftar bisa digeser.
+class _NearbyDiscoveriesCarousel extends StatelessWidget {
+  const _NearbyDiscoveriesCarousel({required this.items});
+
   final List<_DiscoveryData> items;
 
   @override
   Widget build(BuildContext context) {
-    // Jika jumlah ganjil, item terakhir full-width
-    final pairs = (items.length / 2).ceil();
-    final widgets = <Widget>[];
+    final cardWidth = MediaQuery.sizeOf(context).width * 0.75;
 
-    for (int row = 0; row < pairs; row++) {
-      final left = row * 2;
-      final right = left + 1;
-      final hasRight = right < items.length;
-
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _DiscoveryTile(data: items[left])),
-              if (hasRight) ...[
-                const SizedBox(width: 12),
-                Expanded(child: _DiscoveryTile(data: items[right])),
-              ] else
-                const Expanded(child: SizedBox()),
-            ],
-          ),
+    return SizedBox(
+      height: cardWidth * 1.05,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        // Clip.none agar shadow kartu tidak terpotong batas tinggi list.
+        clipBehavior: Clip.none,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: items.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) => SizedBox(
+          width: cardWidth,
+          child: _DiscoveryTile(data: items[index]),
         ),
-      );
-    }
-
-    return SliverList(
-      delegate: SliverChildListDelegate(widgets),
+      ),
     );
   }
 }
 
 class _DiscoveryTile extends StatelessWidget {
   const _DiscoveryTile({required this.data});
+
   final _DiscoveryData data;
 
   /// Warna chip sesuai kategori.
-  static Color _chipColor(String cat) {
+  static Color _chipColor(String cat, ColorScheme cs) {
     switch (cat.toLowerCase()) {
       case 'fungi':
-        return const Color(0xFFE07B12);
+        return _kChipFungi;
       case 'flora':
-        return const Color(0xFF2CB67D);
+        return _kChipFlora;
       default:
-        return WsColors.green; // fauna
+        return cs.primary; // fauna
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final chip = _chipColor(data.category);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── foto dengan overlay
-        ClipRRect(
-          borderRadius: const BorderRadius.all(WsRadius.lg),
-          child: AspectRatio(
-            aspectRatio: 1.0,
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final chip = _chipColor(data.category, cs);
+    final onImage = cs.surfaceContainerLowest; // putih, teks di atas foto
+
+    return Container(
+      // kartu putih rounded dengan shadow — memisah dari scaffold pastel
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: const BorderRadius.all(WsRadius.xl),
+        boxShadow: WsShadow.card(context),
+      ),
+      clipBehavior: Clip.antiAlias, // gambar otomatis clip ke sudut kartu
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── foto dengan overlay; mengisi sisa tinggi kartu
+          Expanded(
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -665,9 +796,9 @@ class _DiscoveryTile extends StatelessWidget {
                   data.imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stack) => Container(
-                    color: WsColors.bgCard,
-                    child: const Icon(Icons.image_not_supported_outlined,
-                        color: WsColors.textDim),
+                    color: cs.surfaceContainer,
+                    child: Icon(Icons.image_not_supported_outlined,
+                        color: cs.outline),
                   ),
                 ),
                 // gradient overlay bawah
@@ -679,7 +810,7 @@ class _DiscoveryTile extends StatelessWidget {
                       stops: const [0.45, 1.0],
                       colors: [
                         Colors.transparent,
-                        Colors.black.withAlpha(180),
+                        cs.shadow.withAlpha(180),
                       ],
                     ),
                   ),
@@ -696,10 +827,10 @@ class _DiscoveryTile extends StatelessWidget {
                       borderRadius: const BorderRadius.all(WsRadius.pill),
                     ),
                     child: Text(data.category,
-                        style: WsText.label(
-                            size: 11,
-                            color: Colors.white,
-                            weight: FontWeight.w700)),
+                        style: tt.labelMedium!.copyWith(
+                            fontSize: 11,
+                            color: onImage,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
                 // jarak (bawah-kiri)
@@ -709,66 +840,74 @@ class _DiscoveryTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on,
-                          color: WsColors.green, size: 13),
+                      Icon(Icons.location_on, color: onImage, size: 13),
                       const SizedBox(width: 3),
                       Text(data.distance,
-                          style: WsText.label(
-                              size: 11,
-                              color: Colors.white,
-                              weight: FontWeight.w600)),
+                          style: tt.labelMedium!.copyWith(
+                              fontSize: 11,
+                              color: onImage,
+                              fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
 
-        const SizedBox(height: 8),
-
-        // ── nama spesies
-        Text(
-          data.name,
-          style: WsText.heading(
-              size: 14, color: WsColors.textPrimary, weight: FontWeight.w800),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-
-        const SizedBox(height: 5),
-
-        // ── avatar + author + waktu
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 11,
-              backgroundColor: WsColors.bgCard,
-              backgroundImage: NetworkImage(data.avatarUrl),
-              onBackgroundImageError: (error, stack) {},
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(data.author,
-                  style: WsText.label(
-                      size: 11,
-                      color: WsColors.textMuted,
-                      weight: FontWeight.w500),
+          // ── teks section di dalam kartu, dengan padding internal
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // nama spesies
+                Text(
+                  data.name,
+                  style: tt.titleLarge!.copyWith(
+                      fontSize: 14,
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w800),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 6),
+
+                // avatar + author + waktu
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 11,
+                      backgroundColor: cs.surfaceContainer,
+                      backgroundImage: NetworkImage(data.avatarUrl),
+                      onBackgroundImageError: (error, stack) {},
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(data.author,
+                          style: tt.labelMedium!.copyWith(
+                              fontSize: 11,
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.access_time_rounded,
+                        size: 11, color: cs.outline),
+                    const SizedBox(width: 3),
+                    Text(data.timeAgo,
+                        style: tt.labelMedium!.copyWith(
+                            fontSize: 11,
+                            color: cs.outline,
+                            fontWeight: FontWeight.w400)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.access_time_rounded,
-                size: 11, color: WsColors.textDim),
-            const SizedBox(width: 3),
-            Text(data.timeAgo,
-                style: WsText.label(
-                    size: 11,
-                    color: WsColors.textDim,
-                    weight: FontWeight.w400)),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -782,23 +921,26 @@ class _LoadMoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton(
+      child: FilledButton(
         onPressed: () {},
-        style: OutlinedButton.styleFrom(
-          foregroundColor: WsColors.textMuted,
-          side: const BorderSide(color: WsColors.divider, width: 1.2),
+        style: FilledButton.styleFrom(
+          backgroundColor: cs.primary, // hijau pekat
+          foregroundColor: cs.surfaceContainerLowest,
           shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(WsRadius.md)),
           padding: const EdgeInsets.symmetric(vertical: 15),
         ),
         child: Text(
           'LOAD MORE NEARBY SPOTS',
-          style: WsText.label(
-            size: 12,
-            color: WsColors.textMuted,
-            weight: FontWeight.w700,
+          style: tt.labelMedium!.copyWith(
+            fontSize: 12,
+            color: cs.surfaceContainerLowest,
+            fontWeight: FontWeight.w700,
           ).copyWith(letterSpacing: 1.2),
         ),
       ),
@@ -831,6 +973,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return MainLayout(
       title: _titles[_index],
       currentIndex: _index,
@@ -842,7 +986,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : Center(
                   child: Text(
                     '${_titles[_index]} — coming soon',
-                    style: WsText.body(color: WsColors.textMuted),
+                    style: tt.bodyMedium!.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ),
     );

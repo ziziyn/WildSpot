@@ -8,7 +8,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.profileImageUrl = kDefaultProfileImage,
-    this.onFilterTap,
     this.onNotificationTap,
     this.onSettingsTap,
     this.onProfileTap,
@@ -16,7 +15,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String title;
   final String profileImageUrl;
-  final VoidCallback? onFilterTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onSettingsTap;
   final VoidCallback? onProfileTap;
@@ -27,47 +25,41 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF1A211E),
+      foregroundColor: Colors.white,            // semua ikon & teks inherit putih
       surfaceTintColor: Colors.transparent,
-      elevation: 0,
+      elevation: 2,                             // pemisah elevasi halus dari halaman
+      shadowColor: Colors.black26,              // bayangan lembut pemisah
       toolbarHeight: 64,
       titleSpacing: 16,
       title: Text(
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.white,              // judul putih di atas hijau
+              fontWeight: FontWeight.w700,
+            ),
       ),
       actions: [
         IconButton(
-          onPressed: onFilterTap,
-          tooltip: 'Filter',
-          icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
-        ),
-        IconButton(
           onPressed: onNotificationTap,
           tooltip: 'Notifikasi',
-          icon: const Icon(Icons.notifications_none, color: Colors.white),
+          icon: const Icon(Icons.notifications_none),
         ),
         IconButton(
           onPressed: onSettingsTap,
           tooltip: 'Pengaturan',
-          icon: const Icon(Icons.settings_outlined, color: Colors.white),
+          icon: const Icon(Icons.settings_outlined),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 4, right: 16),
-          child: GestureDetector(
-            onTap: onProfileTap,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFF2A332F),
-              backgroundImage: NetworkImage(profileImageUrl),
-              onBackgroundImageError: (error, stack) {},
-            ),
+        IconButton(
+          onPressed: onProfileTap,
+          tooltip: 'Profil',
+          padding: const EdgeInsets.only(right: 8),
+          icon: CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.white24,
+            backgroundImage: NetworkImage(profileImageUrl),
+            onBackgroundImageError: (error, stack) {},
           ),
         ),
       ],

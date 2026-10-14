@@ -40,10 +40,11 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: WsColors.bgBase,
+        backgroundColor: cs.surface,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -52,7 +53,8 @@ class _CameraPageState extends State<CameraPage> {
               child: Image.network(
                 _backgroundImage,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: WsColors.bgCard),
+                errorBuilder: (context, error, stackTrace) =>
+                    Container(color: cs.surfaceContainer),
               ),
             ),
             const Positioned.fill(child: _Scrim()),
@@ -133,6 +135,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -146,10 +150,10 @@ class _Header extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => Navigator.maybePop(context),
-                  child: const Align(
+                  child: Align(
                     alignment: Alignment.centerLeft,
                     child: Icon(Icons.chevron_left,
-                        size: 32, color: WsColors.textPrimary),
+                        size: 32, color: cs.onSurface),
                   ),
                 ),
               ),
@@ -157,7 +161,7 @@ class _Header extends StatelessWidget {
                 child: Center(
                   child: Text(
                     'Record Discovery',
-                    style: WsText.heading(size: 18, weight: FontWeight.w700),
+                    style: tt.titleLarge!.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -168,8 +172,8 @@ class _Header extends StatelessWidget {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: WsColors.textPrimary,
-                  boxShadow: WsShadow.card,
+                  color: cs.onSurface,
+                  boxShadow: WsShadow.card(context),
                 ),
                 child: ClipOval(
                   child: Image.network(
@@ -177,12 +181,12 @@ class _Header extends StatelessWidget {
                     width: 36,
                     height: 36,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       width: 36,
                       height: 36,
-                      color: WsColors.bgSurface,
-                      child: const Icon(Icons.person,
-                          size: 20, color: WsColors.textMuted),
+                      color: cs.surfaceContainerLow,
+                      child: Icon(Icons.person,
+                          size: 20, color: cs.onSurfaceVariant),
                     ),
                   ),
                 ),
@@ -316,10 +320,12 @@ class _ClassifyHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eyebrow = WsText.label(
-      size: 11,
-      color: WsColors.textPrimary.withAlpha(200),
-      weight: FontWeight.w700,
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final eyebrow = tt.labelMedium!.copyWith(
+      fontSize: 11,
+      color: cs.onSurface.withAlpha(200),
+      fontWeight: FontWeight.w700,
     ).copyWith(
       letterSpacing: 1.6,
       height: 16 / 11,
@@ -328,7 +334,7 @@ class _ClassifyHeading extends StatelessWidget {
 
     Widget hairline() => Expanded(
         child: Container(
-            height: 1, color: WsColors.textPrimary.withAlpha(60)));
+            height: 1, color: cs.onSurface.withAlpha(60)));
 
     return Column(
       children: [
@@ -347,7 +353,7 @@ class _ClassifyHeading extends StatelessWidget {
           style: eyebrow.copyWith(
             fontSize: 9,
             height: 12 / 9,
-            color: WsColors.green,
+            color: cs.primary,
           ),
         ),
       ],

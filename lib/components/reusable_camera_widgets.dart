@@ -28,10 +28,11 @@ class GlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: WsShadow.card,
+        boxShadow: WsShadow.card(context),
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
@@ -40,10 +41,10 @@ class GlassSurface extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: color ?? WsColors.bgDeep.withAlpha(150),
+              color: color ?? cs.surfaceDim.withAlpha(150),
               borderRadius: borderRadius,
               border: Border.all(
-                color: borderColor ?? WsColors.textPrimary.withAlpha(30),
+                color: borderColor ?? cs.onSurface.withAlpha(30),
               ),
             ),
             child: child,
@@ -73,13 +74,14 @@ class CircleOverlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final button = GestureDetector(
       onTap: onPressed,
       child: GlassSurface(
         child: SizedBox(
           width: size,
           height: size,
-          child: Icon(icon, size: iconSize, color: WsColors.textPrimary),
+          child: Icon(icon, size: iconSize, color: cs.onSurface),
         ),
       ),
     );
@@ -96,16 +98,17 @@ class InfoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GlassSurface(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: WsColors.green),
+          Icon(icon, size: 14, color: cs.primary),
           const SizedBox(width: 8),
           Text(
             text,
-            style: WsText.mono(size: 12, weight: FontWeight.w600)
+            style: context.wsMono.stat.copyWith(fontSize: 12, fontWeight: FontWeight.w600)
                 .copyWith(letterSpacing: 0.4, height: 16 / 12),
           ),
         ],
@@ -136,22 +139,24 @@ class CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return GestureDetector(
       onTap: onTap,
       child: GlassSurface(
-        color: isActive ? WsColors.textPrimary.withAlpha(48) : null,
-        borderColor: isActive ? WsColors.green : null,
+        color: isActive ? cs.onSurface.withAlpha(48) : null,
+        borderColor: isActive ? cs.primary : null,
         child: SizedBox(
           height: 48,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (imageIcon != null)
-                ImageIcon(imageIcon, size: 20, color: WsColors.green)
+                ImageIcon(imageIcon, size: 20, color: cs.primary)
               else
-                Icon(icon, size: 20, color: WsColors.green),
+                Icon(icon, size: 20, color: cs.primary),
               const SizedBox(width: 8),
-              Text(label, style: WsText.body(size: 14, weight: FontWeight.w600)),
+              Text(label, style: tt.bodyMedium!.copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -168,6 +173,7 @@ class ShutterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -177,7 +183,7 @@ class ShutterButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border:
-              Border.all(color: WsColors.textPrimary.withAlpha(70), width: 2),
+              Border.all(color: cs.onSurface.withAlpha(70), width: 2),
         ),
         child: Container(
           width: 72,
@@ -185,10 +191,10 @@ class ShutterButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            boxShadow: WsShadow.card,
+            boxShadow: WsShadow.card(context),
           ),
-          child: const Icon(Icons.photo_camera_outlined,
-              size: 30, color: WsColors.bgDeep),
+          child: Icon(Icons.photo_camera_outlined,
+              size: 30, color: cs.surfaceDim),
         ),
       ),
     );
@@ -201,19 +207,20 @@ class CrosshairMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 32,
       height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: WsColors.green.withAlpha(150), width: 1.5),
+        border: Border.all(color: cs.primary.withAlpha(150), width: 1.5),
       ),
       child: Container(
         width: 4,
         height: 4,
-        decoration: const BoxDecoration(
-          color: WsColors.green,
+        decoration: BoxDecoration(
+          color: cs.primary,
           shape: BoxShape.circle,
         ),
       ),
@@ -230,6 +237,7 @@ class LibraryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -239,8 +247,8 @@ class LibraryButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(WsRadius.md),
           border:
-              Border.all(color: WsColors.textPrimary.withAlpha(70), width: 1.5),
-          boxShadow: WsShadow.card,
+              Border.all(color: cs.onSurface.withAlpha(70), width: 1.5),
+          boxShadow: WsShadow.card(context),
         ),
         child: Stack(
           fit: StackFit.expand,
@@ -248,12 +256,13 @@ class LibraryButton extends StatelessWidget {
             Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: WsColors.bgCard),
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: cs.surfaceContainer),
             ),
             Container(color: Colors.black.withAlpha(70)),
-            const Center(
+            Center(
               child: Icon(Icons.image_outlined,
-                  size: 22, color: WsColors.textPrimary),
+                  size: 22, color: cs.onSurface),
             ),
           ],
         ),
@@ -271,6 +280,7 @@ class LabeledControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -278,7 +288,7 @@ class LabeledControl extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: WsText.label(size: 12, weight: FontWeight.w600).copyWith(
+          style: tt.labelMedium!.copyWith(fontSize: 12, fontWeight: FontWeight.w600).copyWith(
             shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
           ),
         ),
@@ -293,6 +303,7 @@ class ViewfinderFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -302,12 +313,12 @@ class ViewfinderFrame extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.black.withAlpha(28),
               borderRadius: BorderRadius.circular(_frameRadius),
-              border: Border.all(color: WsColors.textPrimary.withAlpha(36)),
+              border: Border.all(color: cs.onSurface.withAlpha(36)),
             ),
           ),
         ),
-        const CustomPaint(
-          painter: CornerBracketsPainter(color: WsColors.green),
+        CustomPaint(
+          painter: CornerBracketsPainter(color: cs.primary),
         ),
       ],
     );
@@ -384,14 +395,16 @@ class PrimaryPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     const shape = StadiumBorder();
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(WsRadius.pill),
-        boxShadow: WsShadow.greenGlow,
+        boxShadow: WsShadow.greenGlow(context),
       ),
       child: Material(
-        color: WsColors.green,
+        color: cs.primary,
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -403,14 +416,14 @@ class PrimaryPillButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 22, color: WsColors.bgDeep),
+                Icon(icon, size: 22, color: cs.surfaceDim),
                 const SizedBox(width: 12),
                 Text(
                   label,
-                  style: WsText.body(
-                    size: 16,
-                    color: WsColors.bgDeep,
-                    weight: FontWeight.w700,
+                  style: tt.bodyMedium!.copyWith(
+                    fontSize: 16,
+                    color: cs.surfaceDim,
+                    fontWeight: FontWeight.w700,
                   ).copyWith(letterSpacing: 0.4),
                 ),
               ],

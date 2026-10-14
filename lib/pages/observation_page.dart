@@ -3,15 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-// ============================================================
-// DESIGN SYSTEM
-// ============================================================
-
-const _bg = Color(0xFF1A211E);
-const _card = Color(0xFF212A26);
-const _green = Color(0xFF4CD964);
-const _orange = Color(0xFFE07B12);
-const _muted = Color(0xFFA9B3AE);
+import '../core/app_theme.dart';
+import 'camera_page.dart';
 
 // ============================================================
 // OBSERVATION PAGE
@@ -201,14 +194,15 @@ class _ObservationPageState extends State<ObservationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      color: _bg,
+      color: cs.surface,
       child: SafeArea(
         child: Stack(
           children: [
             RefreshIndicator(
-              color: _green,
-              backgroundColor: _card,
+              color: cs.primary,
+              backgroundColor: cs.surfaceContainer,
               onRefresh: _fetchObservations,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -240,12 +234,14 @@ class _ObservationPageState extends State<ObservationScreen> {
               right: 18,
               bottom: 24,
               child: FloatingActionButton(
-                backgroundColor: _green,
-                foregroundColor: _bg,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.surface,
                 elevation: 5,
                 onPressed: () {
-                  // Aksi membuat observasi baru
-                  // dapat dihubungkan ke screen/form milik project utama.
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CameraPage()),
+                  );
                 },
                 child: const Icon(Icons.camera_alt_rounded, size: 23),
               ),
@@ -261,17 +257,18 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildLocalTrends() {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.trending_up_rounded, color: _green, size: 19),
+            Icon(Icons.trending_up_rounded, color: cs.primary, size: 19),
             const SizedBox(width: 7),
-            const Text(
+            Text(
               'Local Trends',
               style: TextStyle(
-                color: Colors.white,
+                color: cs.primary,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
@@ -280,7 +277,7 @@ class _ObservationPageState extends State<ObservationScreen> {
             Text(
               'Last 7 Days',
               style: TextStyle(
-                color: _muted,
+                color: cs.onSurfaceVariant,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -290,7 +287,7 @@ class _ObservationPageState extends State<ObservationScreen> {
         const SizedBox(height: 5),
         Text(
           'Daily discovery volume in your area',
-          style: TextStyle(color: _muted, fontSize: 11),
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
         ),
         const SizedBox(height: 14),
         SizedBox(
@@ -299,8 +296,8 @@ class _ObservationPageState extends State<ObservationScreen> {
           child: CustomPaint(
             painter: _TrendChartPainter(
               values: _trendData,
-              lineColor: _green,
-              gridColor: _muted.withValues(alpha: 0.14),
+              lineColor: cs.primary,
+              gridColor: cs.onSurfaceVariant.withValues(alpha: 0.14),
             ),
           ),
         ),
@@ -313,10 +310,11 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildSearchBar() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 46,
       decoration: BoxDecoration(
-        color: _card,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(13),
       ),
       child: TextField(
@@ -324,12 +322,15 @@ class _ObservationPageState extends State<ObservationScreen> {
         onChanged: (_) {
           setState(() {});
         },
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TextStyle(color: cs.primary, fontSize: 13),
         decoration: InputDecoration(
           border: InputBorder.none,
-          prefixIcon: const Icon(Icons.search_rounded, color: _muted, size: 20),
+          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant, size: 20),
           hintText: 'Search species or tags...',
-          hintStyle: TextStyle(color: _muted.withOpacity(0.75), fontSize: 13),
+          hintStyle: TextStyle(
+            color: cs.onSurfaceVariant.withValues(alpha: 0.75),
+            fontSize: 13,
+          ),
           contentPadding: const EdgeInsets.symmetric(vertical: 13),
         ),
       ),
@@ -341,6 +342,7 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildFilters() {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
         _buildTab('Recent'),
@@ -353,13 +355,13 @@ class _ObservationPageState extends State<ObservationScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: _card,
+            color: cs.surfaceContainer,
             borderRadius: BorderRadius.circular(11),
           ),
           child: IconButton(
             padding: EdgeInsets.zero,
             onPressed: () {},
-            icon: const Icon(Icons.tune_rounded, color: _muted, size: 18),
+            icon: Icon(Icons.tune_rounded, color: cs.onSurfaceVariant, size: 18),
           ),
         ),
       ],
@@ -367,6 +369,7 @@ class _ObservationPageState extends State<ObservationScreen> {
   }
 
   Widget _buildTab(String title) {
+    final cs = Theme.of(context).colorScheme;
     final bool active = _selectedTab == title;
 
     return GestureDetector(
@@ -378,13 +381,13 @@ class _ObservationPageState extends State<ObservationScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
         decoration: BoxDecoration(
-          color: active ? _green : _card,
+          color: active ? cs.primary : cs.surfaceContainer,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: active ? _bg : _muted,
+            color: active ? cs.surface : cs.onSurfaceVariant,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -398,14 +401,15 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildCommunityHeader() {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
-        const Icon(Icons.bar_chart_rounded, color: _green, size: 19),
+        Icon(Icons.bar_chart_rounded, color: cs.primary, size: 19),
         const SizedBox(width: 7),
-        const Text(
+        Text(
           'Community Feed',
           style: TextStyle(
-            color: Colors.white,
+            color: cs.primary,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
@@ -419,11 +423,12 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildObservationContent() {
+    final cs = Theme.of(context).colorScheme;
     if (_isLoading) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
         child: Center(
-          child: CircularProgressIndicator(color: _green, strokeWidth: 2.5),
+          child: CircularProgressIndicator(color: cs.primary, strokeWidth: 2.5),
         ),
       );
     }
@@ -454,16 +459,17 @@ class _ObservationPageState extends State<ObservationScreen> {
   }
 
   Widget _buildViewOtherObservationsButton() {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       width: double.infinity,
       height: 44,
       child: OutlinedButton.icon(
         onPressed: _isLoadingMore ? null : _loadMoreObservations,
         icon: _isLoadingMore
-            ? const SizedBox(
+            ? SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: _green),
+                child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
               )
             : const Icon(Icons.visibility_outlined, size: 17),
         label: Text(
@@ -472,9 +478,9 @@ class _ObservationPageState extends State<ObservationScreen> {
               : 'View Other Observations',
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _green,
-          side: BorderSide(color: _green.withValues(alpha: 0.65), width: 1),
-          backgroundColor: _card,
+          foregroundColor: cs.primary,
+          side: BorderSide(color: cs.primary.withValues(alpha: 0.65), width: 1),
+          backgroundColor: cs.surfaceContainer,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -488,9 +494,10 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildObservationCard(_Observation observation) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: _card,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,
@@ -505,13 +512,13 @@ class _ObservationPageState extends State<ObservationScreen> {
                 child: Image.network(
                   observation.photoUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
+                  errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: _bg,
-                      child: const Center(
+                      color: cs.surface,
+                      child: Center(
                         child: Icon(
                           Icons.image_not_supported_outlined,
-                          color: _muted,
+                          color: cs.onSurfaceVariant,
                           size: 35,
                         ),
                       ),
@@ -523,10 +530,10 @@ class _ObservationPageState extends State<ObservationScreen> {
                     }
 
                     return Container(
-                      color: _bg,
-                      child: const Center(
+                      color: cs.surface,
+                      child: Center(
                         child: CircularProgressIndicator(
-                          color: _green,
+                          color: cs.primary,
                           strokeWidth: 2,
                         ),
                       ),
@@ -545,7 +552,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: _bg.withOpacity(0.82),
+                    color: cs.surface.withValues(alpha: 0.82),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Row(
@@ -555,7 +562,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                         observation.isFlora
                             ? Icons.eco_rounded
                             : Icons.pets_rounded,
-                        color: _green,
+                        color: cs.primary,
                         size: 13,
                       ),
                       const SizedBox(width: 4),
@@ -598,8 +605,8 @@ class _ObservationPageState extends State<ObservationScreen> {
                             observation.commonName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: cs.primary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
@@ -610,7 +617,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: _muted,
+                              color: cs.onSurfaceVariant,
                               fontSize: 10,
                               fontStyle: FontStyle.italic,
                             ),
@@ -619,15 +626,15 @@ class _ObservationPageState extends State<ObservationScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.link_rounded, color: _green, size: 17),
+                    Icon(Icons.link_rounded, color: cs.primary, size: 17),
                   ],
                 ),
                 const SizedBox(height: 11),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.location_on_outlined,
-                      color: _green,
+                      color: cs.primary,
                       size: 15,
                     ),
                     const SizedBox(width: 5),
@@ -636,7 +643,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                         observation.location,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: _muted, fontSize: 10),
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
                       ),
                     ),
                   ],
@@ -644,15 +651,15 @@ class _ObservationPageState extends State<ObservationScreen> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.access_time_rounded,
-                      color: _muted,
+                      color: cs.onSurfaceVariant,
                       size: 14,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       observation.timeAgo,
-                      style: TextStyle(color: _muted, fontSize: 10),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
                     ),
                   ],
                 ),
@@ -669,12 +676,13 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildStatusChip(String status) {
+    final cs = Theme.of(context).colorScheme;
     final normalizedStatus = status.toLowerCase();
 
     final bool needsId =
         normalizedStatus == 'needs_id' || normalizedStatus == 'needs id';
 
-    final Color statusColor = needsId ? _orange : _green;
+    final Color statusColor = needsId ? context.wsBrand.amber : cs.primary;
 
     final String displayStatus = status
         .replaceAll('_', ' ')
@@ -717,19 +725,20 @@ class _ObservationPageState extends State<ObservationScreen> {
   }
 
   Widget _buildErrorState() {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, color: _muted, size: 40),
+            Icon(Icons.cloud_off_rounded, color: cs.onSurfaceVariant, size: 40),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load observations',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: cs.primary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -738,14 +747,14 @@ class _ObservationPageState extends State<ObservationScreen> {
             Text(
               _errorMessage ?? 'Something went wrong.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _muted, fontSize: 12),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 14),
             TextButton(
               onPressed: _fetchObservations,
-              child: const Text(
+              child: Text(
                 'Try Again',
-                style: TextStyle(color: _green, fontWeight: FontWeight.w600),
+                style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -758,24 +767,25 @@ class _ObservationPageState extends State<ObservationScreen> {
   // ==========================================================
 
   Widget _buildEmptyState() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        color: _card,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
         children: [
-          const Icon(Icons.search_off_rounded, color: _muted, size: 35),
+          Icon(Icons.search_off_rounded, color: cs.onSurfaceVariant, size: 35),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'No observations found',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 5),
           Text(
             'Try another species or tag.',
-            style: TextStyle(color: _muted, fontSize: 11),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
           ),
         ],
       ),
@@ -929,7 +939,7 @@ class _TrendChartPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final paintFill = Paint()
-      ..color = lineColor.withOpacity(0.08)
+      ..color = lineColor.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
 
     // Grid
