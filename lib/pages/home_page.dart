@@ -236,48 +236,224 @@ class _GreetingSection extends StatelessWidget {
 
 /// Ringkasan cuaca lokal. Saat ini memakai data statis; nilai default
 /// bisa diganti lewat constructor ketika sumber data cuaca sudah ada.
+enum WeatherKind {
+  sunny,
+  cloudy,
+  rainy,
+  night;
+
+  /// Maps a free-form condition string (e.g. OpenWeatherMap's `weather[0].main`:
+  /// "Clear", "Clouds", "Rain", "Drizzle", "Thunderstorm", "Snow", "Mist"...)
+  /// to a [WeatherKind].
+  ///
+  /// [isNight] turns clear skies into [night]. Rain or clouds at night keep
+  /// their own look. Unknown strings fall back to [cloudy], which is neutral.
+  static WeatherKind fromCondition(String condition, {bool isNight = false}) {
+    final c = condition.toLowerCase();
+    if (c.contains('night')) return night;
+    if (c.contains('rain') ||
+        c.contains('drizzle') ||
+        c.contains('thunder') ||
+        c.contains('storm')) {
+      return rainy;
+    }
+    if (c.contains('clear') || c.contains('sun')) {
+      return isNight ? night : sunny;
+    }
+    return cloudy;
+  }
+}
+
+@immutable
+class _WeatherStyle {
+  const _WeatherStyle({
+    required this.icon,
+    required this.fill,
+    required this.border,
+    required this.glow,
+    required this.iconGradient,
+    required this.onFill,
+    required this.onFillVariant,
+  });
+
+  final IconData icon;
+  final Color fill;
+  final Color border;
+  final Color glow;
+  final List<Color> iconGradient; // highlight → mid → shade
+  final Color onFill;
+  final Color onFillVariant;
+}
+
+/// Stateless weather pill. It renders only what it is given, and it never
+/// fetches data itself.
+///
+/// ── HOW TO HOOK UP A REAL API (e.g. OpenWeatherMap) ─────────────────────────
+///
+/// 1. Fetch in a repository/service layer, never in this widget:
+///      GET https://api.openweathermap.org/data/2.5/weather
+///          ?lat=..&lon=..&units=metric&appid=KEY
+///
+/// 2. Parse the JSON into a plain model in your data layer:
+///      final main  = json['weather'][0]['main'] as String;   // "Clear", "Rain"
+///      final icon  = json['weather'][0]['icon'] as String;   // "01d" / "01n"
+///      final temp  = (json['main']['temp'] as num).round();  // °C with metric
+///      → WeatherData(
+///          temperature: '$temp°C',
+///          condition: main,
+///          isNight: icon.endsWith('n'),
+///        )
+///
+/// 3. Expose it through your state management (Provider/Riverpod/Bloc/etc.) and
+///    pass the fields in where the widget is placed, for example:
+///      final w = ref.watch(weatherProvider);            // Riverpod example
+///      return w.when(
+///        data: (d) => LocalWeatherWidget(
+///          temperature: d.temperature,
+///          condition: d.condition,
+///          isNight: d.isNight,
+///        ),
+///        loading: () => const LocalWeatherWidget(),     // or a placeholder
+///        error: (_, __) => const SizedBox.shrink(),
+///      );
+///
+/// Loading and error handling belong to the parent, so this widget stays pure.
+/// Keep the API key out of source control, for example with `--dart-define`.
 class LocalWeatherWidget extends StatelessWidget {
   const LocalWeatherWidget({
     super.key,
     this.temperature = '28°C',
     this.condition = 'Sunny',
-    this.icon = Icons.wb_sunny_rounded,
+    this.isNight = false,
+    this.icon,
   });
 
+  /// Preformatted temperature, e.g. '28°C'.
   final String temperature;
+
+  /// Condition text, shown as-is and used to pick the style.
   final String condition;
-  final IconData icon;
+
+  /// True after sunset. Turns clear skies into the moonlit style.
+  final bool isNight;
+
+  /// Optional icon override. When null, the icon comes from the weather style.
+  final IconData? icon;
+
+  /// Single place that decides how each [WeatherKind] looks.
+  static _WeatherStyle _styleFor(
+    WeatherKind kind,
+    ColorScheme cs,
+    WsBrandColors brand,
+  ) {
+    // Cool, moody variant shared by cloudy and rainy. It derives from the
+    // scheme's tertiary role, a blue-teal that M3 generates from the seed.
+    _WeatherStyle cool(IconData icon) => _WeatherStyle(
+          icon: icon,
+          fill: cs.tertiaryContainer.withAlpha(200),
+          border: cs.tertiary.withAlpha(60),
+          glow: cs.tertiary.withAlpha(70),
+          iconGradient: [
+            Color.lerp(cs.tertiary, cs.onTertiary, 0.45)!,
+            cs.tertiary,
+            Color.lerp(cs.tertiary, cs.onTertiaryContainer, 0.5)!,
+          ],
+          onFill: cs.onTertiaryContainer,
+          onFillVariant: cs.onTertiaryContainer.withAlpha(200),
+        );
+
+    return switch (kind) {
+      WeatherKind.sunny => _WeatherStyle(
+          icon: Icons.wb_sunny_rounded,
+          fill: brand.amberFaint.withAlpha(200),
+          border: brand.amber.withAlpha(50),
+          glow: brand.sun.withAlpha(90),
+          iconGradient: [
+            Color.lerp(brand.sun, cs.surfaceContainerLowest, 0.4)!,
+            brand.sun,
+            brand.amber,
+          ],
+          onFill: cs.onSurface,
+          onFillVariant: cs.onSurfaceVariant,
+        ),
+      WeatherKind.cloudy => cool(Icons.cloud_rounded),
+      WeatherKind.rainy => cool(Icons.water_drop_rounded),
+      WeatherKind.night => _WeatherStyle(
+          icon: Icons.nightlight_round,
+          fill: cs.inverseSurface,
+          border: cs.tertiary.withAlpha(90),
+          glow: cs.tertiary.withAlpha(70),
+          iconGradient: [
+            cs.tertiaryContainer,
+            Color.lerp(cs.tertiaryContainer, cs.tertiary, 0.5)!,
+            cs.tertiary,
+          ],
+          onFill: cs.onInverseSurface,
+          onFillVariant: cs.onInverseSurface.withAlpha(200),
+        ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: const BorderRadius.all(WsRadius.xl),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: cs.onSurface, size: 30),
-          const SizedBox(height: 6),
-          Text(
-            temperature,
-            style: tt.titleLarge?.copyWith(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: cs.onSurface,
+    final kind = WeatherKind.fromCondition(condition, isNight: isNight);
+    final style = _styleFor(kind, cs, context.wsBrand);
+
+    return Semantics(
+      label: '$condition, $temperature',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: style.fill,
+          borderRadius: const BorderRadius.all(WsRadius.pill),
+          border: Border.all(color: style.border),
+          boxShadow: [
+            BoxShadow(color: style.glow, blurRadius: 22, spreadRadius: 1),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ShaderMask paints the gradient through the icon, so the icon
+            // itself must stay opaque white.
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => RadialGradient(
+                center: const Alignment(-0.3, -0.4),
+                radius: 0.9,
+                colors: style.iconGradient,
+                stops: const [0.0, 0.65, 1.0],
+              ).createShader(bounds),
+              child: Icon(icon ?? style.icon, color: Colors.white, size: 36),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            condition,
-            style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  temperature,
+                  style: tt.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: style.onFill,
+                  ),
+                ),
+                Text(
+                  condition,
+                  style: tt.labelMedium?.copyWith(
+                    fontSize: 12,
+                    color: style.onFillVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

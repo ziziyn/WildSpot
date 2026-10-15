@@ -15,6 +15,7 @@ class WsBrandColors extends ThemeExtension<WsBrandColors> {
     required this.forest,
     required this.amber,
     required this.amberFaint,
+    required this.sun,
   });
 
   /// Forest green — M3 seed color and AppBar background.
@@ -26,18 +27,28 @@ class WsBrandColors extends ThemeExtension<WsBrandColors> {
   /// Amber container tone.
   final Color amberFaint;
 
+  /// Bright golden tone for the weather sun and its glow.
+  final Color sun;
+
   static const light = WsBrandColors(
     forest: Color(0xFF2E6B40),
     amber: Color(0xFFB85C00),
     amberFaint: Color(0xFFFFEDD8),
+    sun: Color(0xFFF2A900),
   );
 
   @override
-  WsBrandColors copyWith({Color? forest, Color? amber, Color? amberFaint}) =>
+  WsBrandColors copyWith({
+    Color? forest,
+    Color? amber,
+    Color? amberFaint,
+    Color? sun,
+  }) =>
       WsBrandColors(
         forest: forest ?? this.forest,
         amber: amber ?? this.amber,
         amberFaint: amberFaint ?? this.amberFaint,
+        sun: sun ?? this.sun,
       );
 
   @override
@@ -47,6 +58,7 @@ class WsBrandColors extends ThemeExtension<WsBrandColors> {
       forest: Color.lerp(forest, other.forest, t)!,
       amber: Color.lerp(amber, other.amber, t)!,
       amberFaint: Color.lerp(amberFaint, other.amberFaint, t)!,
+      sun: Color.lerp(sun, other.sun, t)!,
     );
   }
 }
