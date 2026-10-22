@@ -23,7 +23,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/wing.png
+    - assets/mushroom.png
   
   fonts:
     # ── Sora (display / headings)
