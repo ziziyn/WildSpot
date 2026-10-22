@@ -7,6 +7,12 @@ class _NavItem {
   final IconData activeIcon;
 }
 
+/// Bottom navigation bar bersama untuk semua halaman.
+///
+/// Memakai Material 3 [NavigationBar]; seluruh warna, tinggi, indicator dan
+/// tipografi diatur terpusat di `navigationBarTheme` (core/app_theme.dart).
+///
+/// Tab aktif: pill putih transparan + ikon terisi (bukan primaryContainer).
 class BottomNav extends StatelessWidget {
   const BottomNav({
     super.key,
@@ -25,57 +31,19 @@ class BottomNav extends StatelessWidget {
     _NavItem('Community', Icons.people_outline, Icons.people),
   ];
 
-  // light-mode tokens
-  static const _surface  = Color(0xFFE4F0E8); // surfaceContainer hijau pastel
-  static const _active   = Color(0xFF2E6B40); // primary hijau hutan
-  static const _inactive = Color(0xFF4A6356); // onSurfaceVariant muted
-
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _surface,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          height: 64,
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: _active.withAlpha(40)),
-            ),
+    return NavigationBar(
+      selectedIndex: currentIndex,
+      onDestinationSelected: onTap,
+      destinations: [
+        for (final item in _items)
+          NavigationDestination(
+            icon: Icon(item.icon),
+            selectedIcon: Icon(item.activeIcon),
+            label: item.label,
           ),
-          child: Row(
-            children: List.generate(_items.length, (i) {
-              final item = _items[i];
-              final selected = i == currentIndex;
-              final color = selected ? _active : _inactive;
-              return Expanded(
-                child: InkWell(
-                  onTap: () => onTap(i),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(selected ? item.activeIcon : item.icon,
-                          color: color, size: 26),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 11,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
+      ],
     );
   }
-}
+}
