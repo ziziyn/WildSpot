@@ -24,6 +24,8 @@ flutter:
 
   assets:
     - assets/wing.png
+    - assets/forest.jpeg
+    - assets/icon.png
   
   fonts:
     # ── Sora (display / headings)

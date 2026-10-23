@@ -6,45 +6,44 @@ import 'layouts/main_layout.dart';
 import 'pages/home_page.dart';
 import 'pages/explore_page.dart';
 import 'pages/observation_page.dart';
+import 'pages/welcome_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ),
   );
-
   runApp(const WildspotApp());
 }
 
 class WildspotApp extends StatelessWidget {
   const WildspotApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'WildSpot',
       debugShowCheckedModeBanner: false,
       theme: buildWsTheme(),
-      home: const AppShell(),
+      // Aplikasi dimulai dari halaman Welcome/Login
+      home: const WelcomeScreen(),
     );
   }
 }
 
-/// Memegang state tab aktif.
+/// Shell utama aplikasi.
+/// Setelah login berhasil, user masuk ke sini.
+/// Bottom navigation dan halaman lainnya tetap terhubung.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
-
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
-
   static const _titles = [
     'WildSpot',
     'Explore Wildlife',
@@ -52,12 +51,16 @@ class _AppShellState extends State<AppShell> {
     'Missions',
     'Community',
   ];
-
   Widget _pageFor(int index) {
-    if (index == 0) return const HomePage();
-    if (index == 1) return const ExploreScreen();
-    if (index == 2) return const ObservationScreen();
-
+    if (index == 0) {
+      return const HomePage();
+    }
+    if (index == 1) {
+      return const ExploreScreen();
+    }
+    if (index == 2) {
+      return const ObservationScreen();
+    }
     return Center(child: Text('${_titles[index]} (coming soon)'));
   }
 
@@ -66,7 +69,11 @@ class _AppShellState extends State<AppShell> {
     return MainLayout(
       title: _titles[_index],
       currentIndex: _index,
-      onTabChanged: (i) => setState(() => _index = i),
+      onTabChanged: (index) {
+        setState(() {
+          _index = index;
+        });
+      },
       body: _pageFor(_index),
     );
   }

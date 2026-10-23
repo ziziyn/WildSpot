@@ -21,7 +21,6 @@ class _ObservationPageState extends State<ObservationScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   List<_Observation> _observations = [];
-  List<int> _trendData = List.filled(7, 0);
 
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -43,9 +42,9 @@ class _ObservationPageState extends State<ObservationScreen> {
     super.dispose();
   }
 
-  // ==========================================================
-  // FETCH DATA FROM iNATURALIST API
-  // ==========================================================
+  // ============================================================
+  // FETCH OBSERVATIONS
+  // ============================================================
 
   Future<void> _fetchObservations() async {
     setState(() {
@@ -82,7 +81,6 @@ class _ObservationPageState extends State<ObservationScreen> {
 
       setState(() {
         _observations = observations;
-        _trendData = _buildTrendData(observations);
         _isLoading = false;
       });
     } catch (e) {
@@ -92,6 +90,68 @@ class _ObservationPageState extends State<ObservationScreen> {
       });
     }
   }
+
+  // ============================================================
+  // SEARCH BY TAG
+  // ============================================================
+
+  Future<void> _searchObservations(String query) async {
+    final searchQuery = query.trim();
+
+    if (searchQuery.isEmpty) {
+      await _fetchObservations();
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _currentPage = 1;
+    });
+
+    try {
+      final uri = Uri.https('api.inaturalist.org', '/v1/observations', {
+        'per_page': '30',
+        'page': '1',
+        'order_by': 'observed_on',
+        'order': 'desc',
+        'photos': 'true',
+        'geo': 'true',
+        'q': searchQuery,
+        'search_on': 'tags',
+      });
+
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) {
+        throw Exception('API search request failed');
+      }
+
+      final Map<String, dynamic> jsonData =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      final List<dynamic> results = jsonData['results'] as List<dynamic>? ?? [];
+
+      final observations = results
+          .map((item) => _Observation.fromJson(item as Map<String, dynamic>))
+          .where((item) => item.photoUrl.isNotEmpty)
+          .toList();
+
+      setState(() {
+        _observations = observations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Unable to search observations.';
+      });
+    }
+  }
+
+  // ============================================================
+  // LOAD MORE
+  // ============================================================
 
   Future<void> _loadMoreObservations() async {
     if (_isLoadingMore) return;
@@ -139,62 +199,15 @@ class _ObservationPageState extends State<ObservationScreen> {
       });
     }
   }
-  // ==========================================================
-  // CREATE 7-DAY TREND FROM API DATA
-  // ==========================================================
 
-  List<int> _buildTrendData(List<_Observation> observations) {
-    final now = DateTime.now();
-
-    final List<int> data = List.filled(7, 0);
-
-    for (final observation in observations) {
-      if (observation.observedAt == null) continue;
-
-      final date = DateTime(
-        observation.observedAt!.year,
-        observation.observedAt!.month,
-        observation.observedAt!.day,
-      );
-
-      final today = DateTime(now.year, now.month, now.day);
-
-      final difference = today.difference(date).inDays;
-
-      if (difference >= 0 && difference < 7) {
-        final index = 6 - difference;
-        data[index]++;
-      }
-    }
-
-    return data;
-  }
-
-  // ==========================================================
-  // SEARCH
-  // ==========================================================
-
-  List<_Observation> get _filteredObservations {
-    final query = _searchController.text.trim().toLowerCase();
-
-    if (query.isEmpty) {
-      return _observations;
-    }
-
-    return _observations.where((observation) {
-      return observation.commonName.toLowerCase().contains(query) ||
-          observation.scientificName.toLowerCase().contains(query) ||
-          observation.category.toLowerCase().contains(query);
-    }).toList();
-  }
-
-  // ==========================================================
+  // ============================================================
   // BUILD
-  // ==========================================================
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Container(
       color: cs.surface,
       child: SafeArea(
@@ -211,8 +224,6 @@ class _ObservationPageState extends State<ObservationScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        _buildLocalTrends(),
-                        const SizedBox(height: 22),
                         _buildSearchBar(),
                         const SizedBox(height: 14),
                         _buildFilters(),
@@ -227,9 +238,6 @@ class _ObservationPageState extends State<ObservationScreen> {
               ),
             ),
 
-            // ==================================================
-            // FLOATING ACTION BUTTON
-            // ==================================================
             Positioned(
               right: 18,
               bottom: 24,
@@ -252,65 +260,13 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
-  // ==========================================================
-  // LOCAL TRENDS
-  // ==========================================================
-
-  Widget _buildLocalTrends() {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.trending_up_rounded, color: cs.primary, size: 19),
-            const SizedBox(width: 7),
-            Text(
-              'Local Trends',
-              style: TextStyle(
-                color: cs.primary,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              'Last 7 Days',
-              style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Text(
-          'Daily discovery volume in your area',
-          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 130,
-          width: double.infinity,
-          child: CustomPaint(
-            painter: _TrendChartPainter(
-              values: _trendData,
-              lineColor: cs.primary,
-              gridColor: cs.onSurfaceVariant.withValues(alpha: 0.14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ==========================================================
+  // ============================================================
   // SEARCH BAR
-  // ==========================================================
+  // ============================================================
 
   Widget _buildSearchBar() {
     final cs = Theme.of(context).colorScheme;
+
     return Container(
       height: 46,
       decoration: BoxDecoration(
@@ -319,14 +275,18 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) {
-          setState(() {});
+        onSubmitted: (value) {
+          _searchObservations(value);
         },
         style: TextStyle(color: cs.primary, fontSize: 13),
         decoration: InputDecoration(
           border: InputBorder.none,
-          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant, size: 20),
-          hintText: 'Search species or tags...',
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: cs.onSurfaceVariant,
+            size: 20,
+          ),
+          hintText: 'Search by tag...',
           hintStyle: TextStyle(
             color: cs.onSurfaceVariant.withValues(alpha: 0.75),
             fontSize: 13,
@@ -337,12 +297,13 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
-  // ==========================================================
-  // FILTER TABS
-  // ==========================================================
+  // ============================================================
+  // FILTERS
+  // ============================================================
 
   Widget _buildFilters() {
     final cs = Theme.of(context).colorScheme;
+
     return Row(
       children: [
         _buildTab('Recent'),
@@ -361,7 +322,11 @@ class _ObservationPageState extends State<ObservationScreen> {
           child: IconButton(
             padding: EdgeInsets.zero,
             onPressed: () {},
-            icon: Icon(Icons.tune_rounded, color: cs.onSurfaceVariant, size: 18),
+            icon: Icon(
+              Icons.tune_rounded,
+              color: cs.onSurfaceVariant,
+              size: 18,
+            ),
           ),
         ),
       ],
@@ -396,15 +361,16 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
-  // ==========================================================
-  // COMMUNITY FEED HEADER
-  // ==========================================================
+  // ============================================================
+  // COMMUNITY HEADER
+  // ============================================================
 
   Widget _buildCommunityHeader() {
     final cs = Theme.of(context).colorScheme;
+
     return Row(
       children: [
-        Icon(Icons.bar_chart_rounded, color: cs.primary, size: 19),
+        Icon(Icons.groups_rounded, color: cs.primary, size: 19),
         const SizedBox(width: 7),
         Text(
           'Community Feed',
@@ -418,18 +384,15 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
-  // ==========================================================
+  // ============================================================
   // OBSERVATION CONTENT
-  // ==========================================================
+  // ============================================================
 
   Widget _buildObservationContent() {
-    final cs = Theme.of(context).colorScheme;
     if (_isLoading) {
-      return Padding(
+      return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: CircularProgressIndicator(color: cs.primary, strokeWidth: 2.5),
-        ),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
       );
     }
 
@@ -437,7 +400,7 @@ class _ObservationPageState extends State<ObservationScreen> {
       return _buildErrorState();
     }
 
-    final observations = _filteredObservations;
+    final observations = _observations;
 
     if (observations.isEmpty) {
       return _buildEmptyState();
@@ -452,14 +415,18 @@ class _ObservationPageState extends State<ObservationScreen> {
           ),
         ),
         const SizedBox(height: 4),
-
         _buildViewOtherObservationsButton(),
       ],
     );
   }
 
+  // ============================================================
+  // VIEW OTHER OBSERVATIONS
+  // ============================================================
+
   Widget _buildViewOtherObservationsButton() {
     final cs = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       height: 44,
@@ -469,7 +436,10 @@ class _ObservationPageState extends State<ObservationScreen> {
             ? SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.primary,
+                ),
               )
             : const Icon(Icons.visibility_outlined, size: 17),
         label: Text(
@@ -489,12 +459,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-  // ==========================================================
+
+  // ============================================================
   // OBSERVATION CARD
-  // ==========================================================
+  // ============================================================
 
   Widget _buildObservationCard(_Observation observation) {
     final cs = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
@@ -504,7 +476,6 @@ class _ObservationPageState extends State<ObservationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // PHOTO
           Stack(
             children: [
               AspectRatio(
@@ -588,48 +559,41 @@ class _ObservationPageState extends State<ObservationScreen> {
             ],
           ),
 
-          // CARD CONTENT
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            observation.commonName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: cs.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            observation.scientificName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 10,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.link_rounded, color: cs.primary, size: 17),
-                  ],
+                // SPECIES NAME
+                // Ikon info/! di sebelah kanan
+                // sudah dihapus.
+                Text(
+                  observation.commonName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+
+                const SizedBox(height: 3),
+
+                Text(
+                  observation.scientificName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+
                 const SizedBox(height: 11),
+
+                // LOCATION
                 Row(
                   children: [
                     Icon(
@@ -643,12 +607,18 @@ class _ObservationPageState extends State<ObservationScreen> {
                         observation.location,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 6),
+
+                // TIME
                 Row(
                   children: [
                     Icon(
@@ -659,10 +629,45 @@ class _ObservationPageState extends State<ObservationScreen> {
                     const SizedBox(width: 5),
                     Text(
                       observation.timeAgo,
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
+
+                // TAGS
+                if (observation.tags.isNotEmpty) ...[
+                  const SizedBox(height: 9),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 5,
+                    children: observation.tags
+                        .take(4)
+                        .map(
+                          (tag) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '#$tag',
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -671,12 +676,13 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
-  // ==========================================================
+  // ============================================================
   // STATUS CHIP
-  // ==========================================================
+  // ============================================================
 
   Widget _buildStatusChip(String status) {
     final cs = Theme.of(context).colorScheme;
+
     final normalizedStatus = status.toLowerCase();
 
     final bool needsId =
@@ -690,7 +696,8 @@ class _ObservationPageState extends State<ObservationScreen> {
         .map(
           (word) => word.isEmpty
               ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
+              : '${word[0].toUpperCase()}'
+                    '${word.substring(1)}',
         )
         .join(' ');
 
@@ -724,8 +731,13 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 
+  // ============================================================
+  // ERROR STATE
+  // ============================================================
+
   Widget _buildErrorState() {
     final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Center(
@@ -754,7 +766,10 @@ class _ObservationPageState extends State<ObservationScreen> {
               onPressed: _fetchObservations,
               child: Text(
                 'Try Again',
-                style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -762,12 +777,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-  // ==========================================================
+
+  // ============================================================
   // EMPTY STATE
-  // ==========================================================
+  // ============================================================
 
   Widget _buildEmptyState() {
     final cs = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
@@ -784,7 +801,7 @@ class _ObservationPageState extends State<ObservationScreen> {
           ),
           const SizedBox(height: 5),
           Text(
-            'Try another species or tag.',
+            'Try another tag.',
             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
           ),
         ],
@@ -804,6 +821,7 @@ class _Observation {
   final String qualityGrade;
   final String location;
   final String photoUrl;
+  final List<String> tags;
   final DateTime? observedAt;
 
   const _Observation({
@@ -813,12 +831,14 @@ class _Observation {
     required this.qualityGrade,
     required this.location,
     required this.photoUrl,
+    required this.tags,
     required this.observedAt,
   });
 
   factory _Observation.fromJson(Map<String, dynamic> json) {
     final taxon = json['taxon'] as Map<String, dynamic>? ?? {};
 
+    // PHOTO
     final defaultPhoto =
         json['photos'] is List && (json['photos'] as List).isNotEmpty
         ? (json['photos'] as List).first as Map<String, dynamic>
@@ -826,19 +846,18 @@ class _Observation {
 
     String photoUrl = defaultPhoto?['url']?.toString() ?? '';
 
-    // iNaturalist photo URL biasanya memiliki /square,
-    // /medium, /large, dll.
-    // Medium dipakai agar kualitas foto tetap baik.
     if (photoUrl.contains('/square.')) {
       photoUrl = photoUrl.replaceFirst('/square.', '/medium.');
     }
 
+    // LOCATION
     final String placeGuess = json['place_guess']?.toString().trim() ?? '';
 
     final String fallbackLocation = placeGuess.isEmpty
         ? 'Unknown location'
         : placeGuess;
 
+    // SPECIES
     final String scientificName =
         taxon['name']?.toString() ?? 'Unknown species';
 
@@ -849,9 +868,19 @@ class _Observation {
 
     final bool isFlora = iconicTaxon == 'Plantae' || iconicTaxon == 'Fungi';
 
+    // QUALITY GRADE
     final String qualityGrade =
         json['quality_grade']?.toString().trim() ?? 'Unknown';
 
+    // TAGS
+    final List<String> tags = (json['tags'] is List)
+        ? (json['tags'] as List)
+              .map((tag) => tag.toString().trim())
+              .where((tag) => tag.isNotEmpty)
+              .toList()
+        : <String>[];
+
+    // DATE
     DateTime? observedAt;
 
     final String? createdAt = json['created_at']?.toString();
@@ -875,9 +904,14 @@ class _Observation {
       qualityGrade: qualityGrade,
       location: fallbackLocation,
       photoUrl: photoUrl,
+      tags: tags,
       observedAt: observedAt,
     );
   }
+
+  // ============================================================
+  // TIME AGO
+  // ============================================================
 
   String get timeAgo {
     if (observedAt == null) {
@@ -888,139 +922,28 @@ class _Observation {
 
     if (difference.inMinutes < 60) {
       final minutes = difference.inMinutes;
+
       return '$minutes min ago';
     }
 
     if (difference.inHours < 24) {
       final hours = difference.inHours;
-      return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
+
+      return '$hours '
+          '${hours == 1 ? 'hour' : 'hours'} ago';
     }
 
     final days = difference.inDays;
 
     if (days < 7) {
-      return '$days ${days == 1 ? 'day' : 'days'} ago';
+      return '$days '
+          '${days == 1 ? 'day' : 'days'} ago';
     }
 
-    return '${observedAt!.day}/${observedAt!.month}/${observedAt!.year}';
+    return '${observedAt!.day}/'
+        '${observedAt!.month}/'
+        '${observedAt!.year}';
   }
 
   bool get isFlora => category == 'Flora';
-}
-
-// ============================================================
-// TREND CHART
-// ============================================================
-
-class _TrendChartPainter extends CustomPainter {
-  final List<int> values;
-  final Color lineColor;
-  final Color gridColor;
-
-  _TrendChartPainter({
-    required this.values,
-    required this.lineColor,
-    required this.gridColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-
-    final paintGrid = Paint()
-      ..color = gridColor
-      ..strokeWidth = 1;
-
-    final paintLine = Paint()
-      ..color = lineColor
-      ..strokeWidth = 2.2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final paintFill = Paint()
-      ..color = lineColor.withValues(alpha: 0.08)
-      ..style = PaintingStyle.fill;
-
-    // Grid
-    for (int i = 0; i < 4; i++) {
-      final y = size.height * i / 3;
-
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paintGrid);
-    }
-
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
-
-    final double maxY = maxValue == 0 ? 1 : maxValue.toDouble();
-
-    final path = Path();
-
-    final double horizontalSpacing = size.width / (values.length - 1);
-
-    for (int i = 0; i < values.length; i++) {
-      final x = horizontalSpacing * i;
-
-      final normalized = values[i] / maxY;
-
-      final y = size.height - (normalized * size.height * 0.78) - 5;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        final previousX = horizontalSpacing * (i - 1);
-
-        final previousNormalized = values[i - 1] / maxY;
-
-        final previousY =
-            size.height - (previousNormalized * size.height * 0.78) - 5;
-
-        final controlPoint1 = Offset(
-          previousX + (x - previousX) * 0.5,
-          previousY,
-        );
-
-        final controlPoint2 = Offset(previousX + (x - previousX) * 0.5, y);
-
-        path.cubicTo(
-          controlPoint1.dx,
-          controlPoint1.dy,
-          controlPoint2.dx,
-          controlPoint2.dy,
-          x,
-          y,
-        );
-      }
-    }
-
-    // Area underneath line
-    final fillPath = Path.from(path)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(fillPath, paintFill);
-    canvas.drawPath(path, paintLine);
-
-    // Points
-    final paintPoint = Paint()
-      ..color = lineColor
-      ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < values.length; i++) {
-      final x = horizontalSpacing * i;
-
-      final normalized = values[i] / maxY;
-
-      final y = size.height - (normalized * size.height * 0.78) - 5;
-
-      canvas.drawCircle(Offset(x, y), 2.5, paintPoint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TrendChartPainter oldDelegate) {
-    return oldDelegate.values != values ||
-        oldDelegate.lineColor != lineColor ||
-        oldDelegate.gridColor != gridColor;
-  }
 }
