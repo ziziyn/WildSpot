@@ -328,7 +328,7 @@ class _ProfileHeader extends StatelessWidget {
             style: tt.displayMedium!.copyWith(
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              color: cs.onPrimaryContainer,
+              color: cs.onSurface,
             ),
           ),
           const SizedBox(height: 10),
