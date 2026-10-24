@@ -1,11 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../components/custom_app_bar.dart' show kDefaultProfileImage;
 import '../components/discovery_card.dart';
 import '../core/app_theme.dart';
-import 'camera_page.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MOCK DATA — ganti dengan data dari repository/API
@@ -14,8 +11,7 @@ import 'camera_page.dart';
 class _ProfileData {
   const _ProfileData({
     required this.name,
-    required this.rankTitle,
-    required this.level,
+    required this.isVerified,
     required this.bio,
     required this.logs,
     required this.rank,
@@ -23,8 +19,7 @@ class _ProfileData {
   });
 
   final String name;
-  final String rankTitle;
-  final int level;
+  final bool isVerified;
   final String bio;
   final int logs;
   final int rank;
@@ -33,8 +28,7 @@ class _ProfileData {
 
 const _kProfile = _ProfileData(
   name: 'Alex Ranger',
-  rankTitle: 'EXPERT SCOUT',
-  level: 24,
+  isVerified: true,
   bio: 'Passionate naturalist exploring the temperate forests of the UK. '
       'Documenting biodiversity one sprout at a time.',
   logs: 142,
@@ -58,9 +52,10 @@ class _JournalEntry {
   final String location;
 }
 
+// Tiga log yang di-pin user (tampil satu baris di profil).
 // Bukan const karena DateTime tidak punya const constructor.
 // URL gambar = placeholder; ganti dengan foto observasi user.
-final _kJournalEntries = <_JournalEntry>[
+final _kPinnedLogs = <_JournalEntry>[
   _JournalEntry(
     category: 'Flora',
     imageUrl:
@@ -78,20 +73,56 @@ final _kJournalEntries = <_JournalEntry>[
     location: 'Old Oak Glade',
   ),
   _JournalEntry(
-    category: 'Flora',
-    imageUrl:
-        'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=600&q=80',
-    title: 'Wild Forest Flower',
-    date: DateTime(2023, 10, 20),
-    location: 'East Brook Bank',
-  ),
-  _JournalEntry(
     category: 'Fungi',
     imageUrl:
         'https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=600&q=80',
     title: 'Red-Capped Mushroom',
     date: DateTime(2023, 10, 18),
     location: 'Whispering Pines',
+  ),
+];
+
+class _DiscussionPost {
+  const _DiscussionPost({
+    required this.title,
+    required this.excerpt,
+    required this.replies,
+    required this.likes,
+    required this.timeAgo,
+  });
+
+  final String title;
+  final String excerpt;
+  final int replies;
+  final int likes;
+  final String timeAgo;
+}
+
+// Post milik user ini; ganti dengan data dari repository/API.
+const _kDiscussionPosts = <_DiscussionPost>[
+  _DiscussionPost(
+    title: 'Chanterelle or false chanterelle?',
+    excerpt: 'Found a cluster near the old oak at Sherwood North. The gills '
+        'look blunt and forked, but the orange is very deep. Thoughts?',
+    replies: 14,
+    likes: 32,
+    timeAgo: '2h ago',
+  ),
+  _DiscussionPost(
+    title: 'Best time of day to spot jewel beetles',
+    excerpt: 'Caught my first one around midday on a sunny oak trunk. Curious '
+        'whether anyone has better luck early in the morning.',
+    replies: 8,
+    likes: 21,
+    timeAgo: '1d ago',
+  ),
+  _DiscussionPost(
+    title: 'My ancient woodland indicator checklist',
+    excerpt: 'Sharing the plants I look for to tell old woodland from newer '
+        'plantings: bluebell, wood anemone, dog\'s mercury and more.',
+    replies: 23,
+    likes: 57,
+    timeAgo: '4d ago',
   ),
 ];
 
@@ -117,7 +148,8 @@ const _kMissionLine =
 //  PROFILE PAGE
 // ═══════════════════════════════════════════════════════════════════
 
-/// Halaman profil Ranger: avatar, bio, statistik, dan My Journal.
+/// Halaman profil Ranger: avatar, bio, statistik, Journal (3 pinned logs),
+/// dan Discussions (post milik user).
 ///
 /// Dibuka dari avatar di kanan atas [CustomAppBar] (lewat [MainLayout]).
 /// Halaman ini di-push di atas shell, jadi tidak memakai bottom nav.
@@ -151,23 +183,8 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  /// Kartu Add Entry → membuka kamera untuk merekam penemuan baru.
-  Widget _buildAddEntryCard(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 388 / 350,
-      child: _AddEntryCard(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const CameraPage()),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final entries = _kJournalEntries;
-    final addInGrid = entries.length.isOdd;
-
     return Scaffold(
       // Warna, tinggi bayangan, dan gaya judul berasal dari appBarTheme.
       appBar: AppBar(
@@ -211,76 +228,47 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
 
-            // ── ③ My Journal header
+            // ── ③ Journal header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+                child: _SectionHeader(
+                  icon: Icons.menu_book_rounded,
+                  title: 'Journal',
+                  // TODO: buka halaman penuh Journal
+                  onViewMore: () {},
+                ),
+              ),
+            ),
+
+            // ── ③ Pinned logs (3 kartu dalam satu baris)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _PinnedLogsRow(entries: _kPinnedLogs),
+              ),
+            ),
+
+            // ── ④ Discussions
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 8, 4),
+                child: _SectionHeader(
+                  icon: Icons.forum_outlined,
+                  title: 'Discussions',
+                  // TODO: buka halaman penuh Discussions
+                  onViewMore: () {},
+                ),
+              ),
+            ),
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
-                child: _JournalHeader(),
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _DiscussionList(posts: _kDiscussionPosts),
               ),
             ),
 
-            // ── ③ My Journal grid
-            // Kartu Add Entry ikut masuk grid hanya bila jumlah entri ganjil
-            // (mengisi slot kosong di baris terakhir). Bila genap, ia berdiri
-            // sendiri di bawah grid supaya tidak ada ruang kosong setinggi
-            // kartu entri sebelum footer.
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.74,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  childCount: entries.length + (addInGrid ? 1 : 0),
-                  (context, index) {
-                    if (index == entries.length) {
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: _buildAddEntryCard(context),
-                      );
-                    }
-                    final e = entries[index];
-                    return DiscoveryCard(
-                      size: DiscoveryCardSize.compact,
-                      category: e.category,
-                      imageUrl: e.imageUrl,
-                      title: _toTitleCase(e.title),
-                      chipPosition: DiscoveryChipPosition.topRight,
-                      showCategoryIcon: true,
-                      details: [
-                        DiscoveryDetail(
-                          icon: Icons.schedule_rounded,
-                          text: _formatDate(e.date),
-                        ),
-                        DiscoveryDetail(
-                          icon: Icons.location_on_outlined,
-                          text: e.location,
-                        ),
-                      ],
-                      onTap: () {}, // TODO: buka detail entri
-                    );
-                  },
-                ),
-              ),
-            ),
-            if (!addInGrid)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Row(
-                    children: [
-                      Expanded(child: _buildAddEntryCard(context)),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox.shrink()),
-                    ],
-                  ),
-                ),
-              ),
-
-            // ── ④ Footer
+            // ── ⑤ Footer
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
@@ -295,7 +283,7 @@ class _ProfilePageState extends State<ProfilePage>
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ① HEADER
+//  ① HEADER (avatar di tengah, nama + verified, bio rata tengah)
 // ═══════════════════════════════════════════════════════════════════
 
 class _ProfileHeader extends StatelessWidget {
@@ -315,94 +303,95 @@ class _ProfileHeader extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final brand = context.wsBrand;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: Column(
-        children: [
-          _Avatar(url: avatarUrl),
-          const SizedBox(height: 16),
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Avatar di tengah
+                _Avatar(url: avatarUrl, radius: 50),
+                const SizedBox(height: 14),
 
-          Text(
-            data.name,
-            textAlign: TextAlign.center,
-            style: tt.displayMedium!.copyWith(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              color: cs.onSurface,
+                // Nama + tanda verified (Material 3: Icons.verified)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        data.name,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: tt.displayMedium!.copyWith(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    if (data.isVerified) ...[
+                      const SizedBox(width: 6),
+                      Tooltip(
+                        message: 'Verified',
+                        child: Icon(Icons.verified,
+                            size: 22, color: brand.amber),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Bio rata tengah
+                Text(
+                  data.bio,
+                  maxLines: 4,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: tt.bodyMedium!.copyWith(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
+        ),
 
-          // badge peringkat + level
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _InfoPill(
-                icon: Icons.track_changes,
-                label: data.rankTitle,
-                fill: cs.primaryContainer,
-                border: cs.primary.withAlpha(80),
-                foreground: cs.onPrimaryContainer,
-              ),
-              _InfoPill(
-                label: 'LEVEL ${data.level}',
-                fill: brand.amberFaint,
-                border: brand.amber.withAlpha(60),
-                foreground: brand.amber,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              data.bio,
-              textAlign: TextAlign.center,
-              style: tt.bodyMedium!.copyWith(
-                fontSize: 15,
-                height: 1.45,
-                color: cs.onSurface,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Satu pintu untuk mengubah foto, nama, dan bio.
-          FilledButton.icon(
+        // Edit Profile: hanya ikon pena (tanpa latar) di pojok kanan atas,
+        // tepat di bawah ikon Pengaturan. Kotak sentuh 48dp berpusat 28dp
+        // dari tepi kanan (satu sumbu dengan Pengaturan).
+        Positioned(
+          top: 0,
+          right: 4,
+          child: IconButton(
             onPressed: onEditProfile,
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit Profile'),
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.primaryContainer,
-              foregroundColor: cs.onPrimaryContainer,
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(WsRadius.md)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              textStyle: tt.bodyMedium!.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            tooltip: 'Edit Profile',
+            icon: const Icon(Icons.edit_outlined, size: 20),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.url});
+  const _Avatar({required this.url, this.radius = 50});
 
   final String url;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // 50 (radius) *2 + 3 (jarak) *2 + 3 (cincin) *2 = 112
+    // diameter total = radius*2 + 3 (jarak) *2 + 3 (cincin) *2 = radius*2 + 12
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
@@ -411,57 +400,10 @@ class _Avatar extends StatelessWidget {
         boxShadow: WsShadow.greenGlow(context),
       ),
       child: CircleAvatar(
-        radius: 50,
+        radius: radius,
         backgroundColor: cs.surfaceContainer,
         backgroundImage: NetworkImage(url),
         onBackgroundImageError: (error, stack) {},
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.label,
-    required this.fill,
-    required this.border,
-    required this.foreground,
-    this.icon,
-  });
-
-  final String label;
-  final Color fill;
-  final Color border;
-  final Color foreground;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: const BorderRadius.all(WsRadius.pill),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: foreground),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            label,
-            style: tt.labelMedium!.copyWith(
-              fontSize: 12,
-              color: foreground,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -492,7 +434,7 @@ class _StatsCard extends StatelessWidget {
         children: [
           Expanded(
             child: _ProfileStat(
-              icon: Icons.show_chart_rounded,
+              icon: Icons.photo_camera_outlined,
               label: 'LOGS',
               value: '${data.logs}',
             ),
@@ -500,7 +442,7 @@ class _StatsCard extends StatelessWidget {
           const _StatDivider(),
           Expanded(
             child: _ProfileStat(
-              icon: Icons.trending_up_rounded,
+              icon: Icons.leaderboard_outlined,
               label: 'RANK',
               value: '${data.rank}',
             ),
@@ -508,7 +450,7 @@ class _StatsCard extends StatelessWidget {
           const _StatDivider(),
           Expanded(
             child: _ProfileStat(
-              icon: Icons.emoji_events_outlined,
+              icon: Icons.workspace_premium_outlined,
               label: 'BADGES',
               value: '${data.badges}',
             ),
@@ -580,11 +522,19 @@ class _StatDivider extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ③ MY JOURNAL
+//  ③ JOURNAL
 // ═══════════════════════════════════════════════════════════════════
 
-class _JournalHeader extends StatelessWidget {
-  const _JournalHeader();
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.onViewMore,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onViewMore;
 
   @override
   Widget build(BuildContext context) {
@@ -594,25 +544,96 @@ class _JournalHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(Icons.menu_book_rounded, color: cs.primary, size: 24),
+        Icon(icon, color: cs.primary, size: 24),
         const SizedBox(width: 10),
-        Text(
-          'My Journal',
-          style: tt.titleLarge!.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface,
+        Expanded(
+          child: Text(
+            title,
+            style: tt.titleLarge!.copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: cs.onSurface,
+            ),
           ),
+        ),
+        TextButton(
+          onPressed: onViewMore,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          child: const Text('View More'),
         ),
       ],
     );
   }
 }
 
-/// Kartu "Add Entry" dengan border putus-putus.
-class _AddEntryCard extends StatelessWidget {
-  const _AddEntryCard({required this.onTap});
+/// 3 pinned logs dalam satu baris. Lebar kartu dibagi rata; tinggi mengikuti
+/// rasio foto + footer ([DiscoveryCardSize.mini]).
+class _PinnedLogsRow extends StatelessWidget {
+  const _PinnedLogsRow({required this.entries});
 
+  final List<_JournalEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: DiscoveryCard(
+              size: DiscoveryCardSize.mini,
+              category: entries[i].category,
+              imageUrl: entries[i].imageUrl,
+              title: _toTitleCase(entries[i].title),
+              chipPosition: DiscoveryChipPosition.topRight,
+              imageAspectRatio: 1,
+              details: [
+                DiscoveryDetail(
+                  icon: Icons.schedule_rounded,
+                  text: _formatDate(entries[i].date),
+                ),
+              ],
+              onTap: () {}, // TODO: buka detail entri
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ④ DISCUSSIONS
+// ═══════════════════════════════════════════════════════════════════
+
+class _DiscussionList extends StatelessWidget {
+  const _DiscussionList({required this.posts});
+
+  final List<_DiscussionPost> posts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < posts.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _DiscussionCard(
+            post: posts[i],
+            onTap: () {}, // TODO: buka detail diskusi
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DiscussionCard extends StatelessWidget {
+  const _DiscussionCard({required this.post, required this.onTap});
+
+  final _DiscussionPost post;
   final VoidCallback onTap;
 
   @override
@@ -620,30 +641,69 @@ class _AddEntryCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onTap,
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(WsRadius.lg),
-        child: CustomPaint(
-          painter: _DashedBorderPainter(
-            color: cs.primary.withAlpha(150),
-            radius: WsRadius.lg.x,
-          ),
-          child: Center(
+        boxShadow: WsShadow.card(context),
+      ),
+      // Material sebagai latar supaya ripple InkWell terlihat di atas kartu.
+      child: Material(
+        color: cs.surfaceContainerLowest,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(WsRadius.lg),
+          side: BorderSide(color: cs.outlineVariant),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.edit_outlined, size: 32, color: cs.primary),
-                const SizedBox(height: 10),
                 Text(
-                  'ADD ENTRY',
-                  style: tt.labelMedium!.copyWith(
-                    fontSize: 13,
-                    color: cs.primary,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.0,
+                  post.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tt.titleLarge!.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  post.excerpt,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tt.bodyMedium!.copyWith(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _PostMeta(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      value: '${post.replies}',
+                    ),
+                    const SizedBox(width: 16),
+                    _PostMeta(
+                      icon: Icons.favorite_border_rounded,
+                      value: '${post.likes}',
+                    ),
+                    const Spacer(),
+                    Text(
+                      post.timeAgo,
+                      style: tt.labelMedium!.copyWith(
+                        fontSize: 11,
+                        color: cs.outline,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -654,55 +714,37 @@ class _AddEntryCard extends StatelessWidget {
   }
 }
 
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({
-    required this.color,
-    required this.radius,
-    this.strokeWidth = 1.4,
-    this.dashLength = 6,
-    this.gapLength = 5,
-  });
+class _PostMeta extends StatelessWidget {
+  const _PostMeta({required this.icon, required this.value});
 
-  final Color color;
-  final double radius;
-  final double strokeWidth;
-  final double dashLength;
-  final double gapLength;
+  final IconData icon;
+  final String value;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
-    final rrect = RRect.fromRectAndRadius(
-      (Offset.zero & size).deflate(strokeWidth / 2),
-      Radius.circular(radius),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: cs.onSurfaceVariant),
+        const SizedBox(width: 5),
+        Text(
+          value,
+          style: tt.labelMedium!.copyWith(
+            fontSize: 12,
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
-
-    final path = Path()..addRRect(rrect);
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = math.min(distance + dashLength, metric.length);
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance += dashLength + gapLength;
-      }
-    }
   }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color ||
-      old.radius != radius ||
-      old.strokeWidth != strokeWidth ||
-      old.dashLength != dashLength ||
-      old.gapLength != gapLength;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ④ FOOTER
+//  ⑤ FOOTER
 // ═══════════════════════════════════════════════════════════════════
 
 class _ProfileFooter extends StatelessWidget {
