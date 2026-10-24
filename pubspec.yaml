@@ -23,6 +23,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/forest.jpeg
+    - assets/icon.png
     - assets/mushroom.png
   
   fonts:
