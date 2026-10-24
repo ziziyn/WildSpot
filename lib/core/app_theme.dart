@@ -242,6 +242,59 @@ ThemeData buildWsTheme() {
       thickness: 1,
     ),
 
+    // ── Navigation Bar (bottom nav, dipakai semua halaman) ─────────────
+    // Solid primary agar kontras tinggi terhadap konten (pasangan AppBar).
+    // Tab aktif ditandai pill putih transparan (state layer onPrimary), bukan
+    // primaryContainer, supaya tidak bentrok dengan warna container lain.
+    navigationBarTheme: NavigationBarThemeData(
+      height: 72,
+      backgroundColor: colorScheme.primary,
+      surfaceTintColor: Colors.transparent,
+      elevation: 8,
+      shadowColor: colorScheme.shadow,
+      indicatorColor: colorScheme.onPrimary.withAlpha(0x38),
+      indicatorShape: const StadiumBorder(),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          size: 24,
+          color: selected
+              ? colorScheme.onPrimary
+              : colorScheme.onPrimary.withAlpha(0xB3),
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontFamily: _fontDmSans,
+          fontSize: 11,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          color: selected
+              ? colorScheme.onPrimary
+              : colorScheme.onPrimary.withAlpha(0xB3),
+        );
+      }),
+    ),
+
+    // ── Floating Action Button ──────────────────────────────────────────
+    // Satu warna FAB untuk seluruh app, tanpa warna per-instance.
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: colorScheme.primaryContainer,
+      foregroundColor: colorScheme.onPrimaryContainer,
+      elevation: 3,
+    ),
+
+    // ── Search Bar (M3 SearchBar) ───────────────────────────────────────
+    // Solid & opaque (tanpa transparansi) supaya terbaca di atas peta/foto.
+    searchBarTheme: SearchBarThemeData(
+      backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerLowest),
+      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+      elevation: const WidgetStatePropertyAll(3),
+      shadowColor: WidgetStatePropertyAll(colorScheme.shadow),
+      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
+    ),
+
     // ── Extensions ──────────────────────────────────────────────────────
     extensions: <ThemeExtension<dynamic>>[
       brand,

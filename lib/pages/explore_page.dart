@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -38,9 +40,23 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   static const double _minExtent = 0.40;
   static const double _initialExtent = 0.58;
-  static const double _maxExtent = 0.95;
+
+  /// Batas atas bila konten lebih tinggi dari layar (layar kecil): di kasus
+  /// ini saja sheet boleh di-scroll.
+  static const double _hardMaxExtent = 0.95;
 
   final ValueNotifier<double> _extent = ValueNotifier(_initialExtent);
+
+  /// Tinggi konten sheet (px), diukur setelah layout. Sheet hanya bisa ditarik
+  /// sampai seluruh konten terlihat — tidak ada ruang kosong di bawahnya.
+  double? _contentHeight;
+
+  void _onContentHeight(double height) {
+    if (_contentHeight != null && (_contentHeight! - height).abs() < 0.5) {
+      return;
+    }
+    setState(() => _contentHeight = height);
+  }
 
   @override
   void dispose() {
@@ -53,6 +69,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final cs = Theme.of(context).colorScheme;
     return LayoutBuilder(builder: (context, c) {
       final h = c.maxHeight;
+      final maxExtent = _contentHeight == null
+          ? _hardMaxExtent
+          : (_contentHeight! / h).clamp(0.0, _hardMaxExtent);
+      final minExtent = math.min(_minExtent, maxExtent);
+      final initialExtent = math.min(_initialExtent, maxExtent);
       return Stack(
         children: [
           // Latar belakang peta/gambar
@@ -61,7 +82,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               _mapImage,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stack) =>
-                  Container(color: const Color(0xFF2A332F)),
+                  ColoredBox(color: cs.inverseSurface),
             ),
           ),
           Positioned.fill(
@@ -71,8 +92,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withAlpha(90),
-                    Colors.black.withAlpha(30),
+                    cs.shadow.withAlpha(90),
+                    cs.shadow.withAlpha(30),
                     cs.surface.withAlpha(200),
                   ],
                 ),
@@ -80,34 +101,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
 
-          // Marker "Waste Dump"
-          Positioned(top: h * 0.22, right: 70, child: const _WasteMarker()),
-
           // Search bar
           const Positioned(top: 16, left: 16, right: 16, child: _SearchBar()),
 
-          // Tombol aksi mengambang (mengikuti tinggi sheet)
+          // Kontrol peta (mengikuti tinggi sheet)
           ValueListenableBuilder<double>(
             valueListenable: _extent,
             builder: (_, e, child) => Positioned(
               right: 16,
-              bottom: (h * e + 12).clamp(0.0, h - 220),
+              bottom: (h * e + 12).clamp(0.0, h - 200),
               child: child!,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _MapFab(icon: Icons.my_location, tooltip: 'Lokasi saya'),
-                SizedBox(height: 12),
-                _MapFab(icon: Icons.layers_outlined, tooltip: 'Layers'),
-                SizedBox(height: 12),
-                _MapFab(
-                  icon: Icons.warning_amber_rounded,
-                  tooltip: 'Alert',
-                  color: context.wsBrand.amber,
-                ),
-              ],
-            ),
+            child: const _MapActions(),
           ),
 
           // Bottom sheet yang bisa di-drag dan di-scroll
@@ -117,11 +122,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
               return false;
             },
             child: DraggableScrollableSheet(
-              initialChildSize: _initialExtent,
-              minChildSize: _minExtent,
-              maxChildSize: _maxExtent,
-              builder: (context, scrollController) =>
-                  _DetailSheet(controller: scrollController),
+              initialChildSize: initialExtent,
+              minChildSize: minExtent,
+              maxChildSize: maxExtent,
+              builder: (context, scrollController) => _DetailSheet(
+                controller: scrollController,
+                onContentHeight: _onContentHeight,
+              ),
             ),
           ),
         ],
@@ -131,121 +138,119 @@ class _ExploreScreenState extends State<ExploreScreen> {
 }
 
 // ---- Bagian atas -----------------------------------------------------------
+
+/// Search bar M3. Warna solid (surfaceContainerLowest, opacity 100%) dan
+/// elevasi diatur di `searchBarTheme` (core/app_theme.dart).
 class _SearchBar extends StatelessWidget {
   const _SearchBar();
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: const Color(0xFF2A332F).withAlpha(235),
-      borderRadius: BorderRadius.circular(28),
-      child: TextField(
-        style: TextStyle(color: Colors.white),
-        cursorColor: cs.primary,
-        decoration: InputDecoration(
-          hintText: 'Search species or region...',
-          hintStyle: TextStyle(color: cs.onSurfaceVariant),
-          prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
+    return const SearchBar(
+      hintText: 'Search species or region...',
+      leading: Icon(Icons.search),
     );
   }
 }
 
-class _MapFab extends StatelessWidget {
-  const _MapFab({required this.icon, required this.tooltip, this.color});
-
-  final IconData icon;
-  final String tooltip;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: FloatingActionButton(
-        heroTag: tooltip,
-        tooltip: tooltip,
-        elevation: 2,
-        shape: const CircleBorder(),
-        backgroundColor: color ?? const Color(0xFF1F2824),
-        foregroundColor: Colors.white,
-        onPressed: () {},
-        child: Icon(icon, size: 24),
-      ),
-    );
-  }
-}
-
-class _WasteMarker extends StatelessWidget {
-  const _WasteMarker();
+/// Kontrol utilitas peta ("Lokasi saya" dan "Layers"), memakai tonal icon
+/// button M3. Halaman ini tidak memiliki FAB.
+class _MapActions extends StatelessWidget {
+  const _MapActions();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: context.wsBrand.amber.withAlpha(60),
-            border: Border.all(color: context.wsBrand.amber, width: 2),
-          ),
-          child: Icon(Icons.warning_amber_rounded, color: context.wsBrand.amber),
+        IconButton.filledTonal(
+          onPressed: () {},
+          tooltip: 'Lokasi saya',
+          icon: const Icon(Icons.my_location),
         ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.black.withAlpha(180),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Text('Waste Dump',
-              style: TextStyle(color: Colors.white, fontSize: 10)),
+        const SizedBox(height: 12),
+        IconButton.filledTonal(
+          onPressed: () {},
+          tooltip: 'Layers',
+          icon: const Icon(Icons.layers_outlined),
         ),
       ],
     );
   }
 }
 
-// ---- Sheet ---------------------------------------------------------------------
-class _DetailSheet extends StatelessWidget {
-  const _DetailSheet({required this.controller});
+// ---- Sheet ---------------------------------------------------------------
+
+/// Sheet utama: latar `surface` (sama dengan latar halaman Home), kartu di
+/// dalamnya putih (surfaceContainerLowest) seperti kartu di Home, sehingga
+/// kartu terpisah jelas dari latar sheet. Pemisah dari peta memakai bayangan
+/// lembut di tepi atas.
+///
+/// Tinggi konten diukur dan dilaporkan lewat [onContentHeight] agar sheet
+/// berhenti tepat saat seluruh konten sudah terlihat.
+class _DetailSheet extends StatefulWidget {
+  const _DetailSheet({required this.controller, required this.onContentHeight});
   final ScrollController controller;
+  final ValueChanged<double> onContentHeight;
+
+  @override
+  State<_DetailSheet> createState() => _DetailSheetState();
+}
+
+class _DetailSheetState extends State<_DetailSheet> {
+  final GlobalKey _contentKey = GlobalKey();
+
+  void _measure() {
+    final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) widget.onContentHeight(box.size.height);
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _measure();
+    });
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: WsRadius.xl),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withAlpha(50),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: ListView(
-        controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        controller: widget.controller,
+        padding: EdgeInsets.zero,
         children: [
-          _GrabHandle(),
-          SizedBox(height: 12),
-          _SheetHeader(),
-          SizedBox(height: 16),
-          _StatsRow(),
-          SizedBox(height: 16),
-          _TrendCard(),
-          SizedBox(height: 20),
-          Text('NEARBY DISCOVERIES',
-              style: TextStyle(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14)),
-          SizedBox(height: 12),
-          _DiscoveryList(),
+          Padding(
+            key: _contentKey,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _GrabHandle(),
+                const SizedBox(height: 12),
+                const _SheetHeader(),
+                const SizedBox(height: 16),
+                const _StatsRow(),
+                const SizedBox(height: 16),
+                const _TrendCard(),
+                const SizedBox(height: 20),
+                Text('Nearby Discoveries',
+                    style: tt.titleLarge!
+                        .copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                const _DiscoveryList(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -254,17 +259,21 @@ class _DetailSheet extends StatelessWidget {
 
 class _GrabHandle extends StatelessWidget {
   const _GrabHandle();
+
   @override
-  Widget build(BuildContext context) => Center(
-        child: Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.white24,
-            borderRadius: BorderRadius.circular(2),
-          ),
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Container(
+        width: 32,
+        height: 4,
+        decoration: BoxDecoration(
+          color: cs.outlineVariant,
+          borderRadius: const BorderRadius.all(WsRadius.pill),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _SheetHeader extends StatelessWidget {
@@ -273,6 +282,7 @@ class _SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -283,19 +293,18 @@ class _SheetHeader extends StatelessWidget {
               Text('Blackwood Forest',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800)),
-              SizedBox(height: 4),
+                  style: tt.titleLarge!
+                      .copyWith(fontSize: 24, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.verified_user_outlined, size: 16, color: cs.primary),
-                  SizedBox(width: 6),
+                  Icon(Icons.verified_user_outlined,
+                      size: 16, color: cs.primary),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text('Protected Area • Active Monitoring',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                        style: tt.bodySmall!.copyWith(fontSize: 13)),
                   ),
                 ],
               ),
@@ -306,13 +315,11 @@ class _SheetHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: cs.primary.withAlpha(40),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: cs.primary.withAlpha(120)),
+            color: cs.primary,
+            borderRadius: const BorderRadius.all(WsRadius.pill),
           ),
           child: Text('Healthy',
-              style: TextStyle(
-                  color: cs.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+              style: tt.labelLarge!.copyWith(color: cs.onPrimary)),
         ),
       ],
     );
@@ -342,6 +349,18 @@ class _StatsRow extends StatelessWidget {
   }
 }
 
+/// Dekorasi kartu yang sama dengan kartu di Home
+/// (surfaceContainerLowest + outlineVariant + WsShadow.card).
+BoxDecoration _cardDecoration(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+  return BoxDecoration(
+    color: cs.surfaceContainerLowest,
+    borderRadius: const BorderRadius.all(WsRadius.lg),
+    border: Border.all(color: cs.outlineVariant),
+    boxShadow: WsShadow.card(context),
+  );
+}
+
 class _StatCard extends StatelessWidget {
   const _StatCard(
       {required this.icon, required this.label, required this.value});
@@ -352,13 +371,10 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.primary.withAlpha(40)),
-      ),
+      decoration: _cardDecoration(context),
       child: Row(
         children: [
           Icon(icon, color: cs.primary, size: 24),
@@ -370,13 +386,9 @@ class _StatCard extends StatelessWidget {
                 Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                    style: tt.labelMedium),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: TextStyle(
-                        color: cs.primary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800)),
+                Text(value, style: context.wsMono.stat.copyWith(fontSize: 20)),
               ],
             ),
           ),
@@ -386,37 +398,31 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ---- Chart ---------------------------------------------------------------------
+// ---- Chart ---------------------------------------------------------------
 class _TrendCard extends StatelessWidget {
   const _TrendCard();
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 14, 16, 12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.primary.withAlpha(40)),
-      ),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(left: 4),
+            padding: const EdgeInsets.only(left: 4),
             child: Row(
               children: [
                 Icon(Icons.show_chart, color: cs.primary, size: 20),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text('WEEKLY BIODIVERSITY TREND',
-                      style: TextStyle(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14)),
+                  child: Text('Weekly Biodiversity Trend',
+                      style: tt.titleLarge!.copyWith(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
-                Icon(Icons.info_outline, color: cs.onSurfaceVariant, size: 18),
               ],
             ),
           ),
@@ -427,8 +433,9 @@ class _TrendCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _LegendDot(color: cs.primary, label: 'Biodiversity Index'),
-              SizedBox(width: 16),
-              _LegendDot(color: context.wsBrand.amber, label: 'Disturbance Level'),
+              const SizedBox(width: 16),
+              _LegendDot(
+                  color: context.wsBrand.amber, label: 'Disturbance Level'),
             ],
           ),
         ],
@@ -438,7 +445,7 @@ class _TrendCard extends StatelessWidget {
 
   LineChartData _chartData(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final labelStyle = TextStyle(color: cs.onSurfaceVariant, fontSize: 11);
+    final labelStyle = Theme.of(context).textTheme.labelSmall;
     return LineChartData(
       minX: 0,
       maxX: 6,
@@ -449,8 +456,8 @@ class _TrendCard extends StatelessWidget {
         show: true,
         drawVerticalLine: false,
         horizontalInterval: 20,
-            getDrawingHorizontalLine: (_) =>
-            const FlLine(color: Color(0xFFCCDDD5), strokeWidth: 1),
+        getDrawingHorizontalLine: (_) =>
+            FlLine(color: cs.outlineVariant, strokeWidth: 1),
       ),
       titlesData: FlTitlesData(
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -518,7 +525,6 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -528,7 +534,7 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],
     );
   }
@@ -543,12 +549,13 @@ class _DiscoveryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return SizedBox(
       width: 96,
       child: Column(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: const BorderRadius.all(WsRadius.md),
             child: Image.network(
               discovery.imageUrl,
               width: 96,
@@ -557,7 +564,7 @@ class _DiscoveryItem extends StatelessWidget {
               errorBuilder: (context, error, stackTrace) => Container(
                 width: 96,
                 height: 96,
-                color: cs.surfaceContainer,
+                color: cs.surfaceContainerHigh,
                 child: Icon(Icons.image_not_supported_outlined,
                     color: cs.onSurfaceVariant),
               ),
@@ -567,7 +574,7 @@ class _DiscoveryItem extends StatelessWidget {
           Text(discovery.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+              style: tt.labelMedium!.copyWith(color: cs.onSurface)),
         ],
       ),
     );

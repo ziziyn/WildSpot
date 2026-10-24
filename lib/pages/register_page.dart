@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../components/auth.widget.dart';
+import '../components/auth_widget.dart';
 import '../core/app_theme.dart';
 
 import 'package:wild_spot/main.dart';
