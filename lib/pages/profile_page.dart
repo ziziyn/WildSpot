@@ -58,24 +58,21 @@ class _JournalEntry {
 final _kPinnedLogs = <_JournalEntry>[
   _JournalEntry(
     category: 'Flora',
-    imageUrl:
-        'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=600&q=80',
     title: 'Rare Forest Fern',
     date: DateTime(2023, 10, 24),
     location: 'Sherwood North',
   ),
   _JournalEntry(
     category: 'Fauna',
-    imageUrl:
-        'https://images.unsplash.com/photo-1470093851219-69951fcbb533?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1470093851219-69951fcbb533?w=600&q=80',
     title: 'Metallic Jewel Beetle',
     date: DateTime(2023, 10, 22),
     location: 'Old Oak Glade',
   ),
   _JournalEntry(
     category: 'Fungi',
-    imageUrl:
-        'https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=600&q=80',
     title: 'Red-Capped Mushroom',
     date: DateTime(2023, 10, 18),
     location: 'Whispering Pines',
@@ -127,19 +124,30 @@ const _kDiscussionPosts = <_DiscussionPost>[
 ];
 
 const _kMonths = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// Judul kartu selalu Title Case: 'wild forest flower' → 'Wild Forest Flower'
 /// (huruf setelah spasi atau tanda hubung juga kapital: 'Red-Capped').
 String _toTitleCase(String s) => s.trim().toLowerCase().replaceAllMapped(
-      RegExp(r'(^|[\s\-])(\p{L})', unicode: true),
-      (m) => '${m[1]}${m[2]!.toUpperCase()}',
-    );
+  RegExp(r'(^|[\s\-])(\p{L})', unicode: true),
+  (m) => '${m[1]}${m[2]!.toUpperCase()}',
+);
 
 /// 'Oct 24, 2023' — tanpa dependency intl.
-String _formatDate(DateTime d) => '${_kMonths[d.month - 1]} ${d.day}, ${d.year}';
+String _formatDate(DateTime d) =>
+    '${_kMonths[d.month - 1]} ${d.day}, ${d.year}';
 
 const _kMissionLine =
     'Contributing to SDG 15: Life on Land through community science.';
@@ -514,11 +522,11 @@ class _StatDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 1,
-        height: 44,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: Theme.of(context).colorScheme.outlineVariant,
-      );
+    width: 1,
+    height: 44,
+    margin: const EdgeInsets.symmetric(horizontal: 8),
+    color: Theme.of(context).colorScheme.outlineVariant,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════
