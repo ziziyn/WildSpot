@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/custom_app_bar.dart';
 import '../components/bottom_nav.dart';
+import '../pages/settings_page.dart';
 
 /// Wrapper reusable: Custom App Bar + [body] + Bottom Navigation Bar.
 class MainLayout extends StatelessWidget {
@@ -27,7 +28,9 @@ class MainLayout extends StatelessWidget {
         title: title,
         profileImageUrl: profileImageUrl,
         onNotificationTap: () {},
-        onSettingsTap: () {},
+        onSettingsTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+        ),
         onProfileTap: () {},
       ),
       body: body,
