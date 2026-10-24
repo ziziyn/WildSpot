@@ -49,7 +49,8 @@ IconData discoveryCategoryIcon(String category) {
 /// Preset kepadatan kartu.
 ///
 /// * [regular] — persis tampilan awal Nearby Discoveries di Home.
-/// * [compact] — versi lebih kecil untuk grid 2 kolom (My Journal).
+/// * [compact] — versi lebih kecil untuk grid 2 kolom.
+/// * [mini] — paling kecil, untuk 3 kartu sebaris (pinned logs di Profile).
 enum DiscoveryCardSize {
   regular(
     radius: WsRadius.xl,
@@ -76,6 +77,19 @@ enum DiscoveryCardSize {
     avatarRadius: 10,
     labelFont: 10,
     labelIcon: 12,
+  ),
+  mini(
+    radius: WsRadius.md,
+    inset: 6,
+    chipPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    chipFont: 9,
+    footerPadding: EdgeInsets.fromLTRB(8, 8, 8, 10),
+    titleFont: 12,
+    metaFont: 10,
+    metaIcon: 12,
+    avatarRadius: 9,
+    labelFont: 9,
+    labelIcon: 11,
   );
 
   const DiscoveryCardSize({
