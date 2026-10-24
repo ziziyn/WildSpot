@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/app_theme.dart';
+import 'core/user_scope.dart';
 import 'layouts/main_layout.dart';
 import 'pages/home_page.dart';
 import 'pages/explore_page.dart';
@@ -19,16 +20,35 @@ void main() {
   runApp(const WildspotApp());
 }
 
-class WildspotApp extends StatelessWidget {
+class WildspotApp extends StatefulWidget {
   const WildspotApp({super.key});
+
+  @override
+  State<WildspotApp> createState() => _WildspotAppState();
+}
+
+class _WildspotAppState extends State<WildspotApp> {
+  // Satu sumber data user untuk seluruh app (avatar, nama, status verified).
+  final _user = UserController();
+
+  @override
+  void dispose() {
+    _user.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WildSpot',
-      debugShowCheckedModeBanner: false,
-      theme: buildWsTheme(),
-      // Aplikasi dimulai dari halaman Welcome/Login
-      home: const WelcomeScreen(),
+    // UserScope di atas MaterialApp supaya semua route ikut terjangkau.
+    return UserScope(
+      controller: _user,
+      child: MaterialApp(
+        title: 'WildSpot',
+        debugShowCheckedModeBanner: false,
+        theme: buildWsTheme(),
+        // Aplikasi dimulai dari halaman Welcome/Login
+        home: const WelcomeScreen(),
+      ),
     );
   }
 }

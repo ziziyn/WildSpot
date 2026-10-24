@@ -13,29 +13,24 @@ class MainLayout extends StatelessWidget {
     required this.title,
     required this.currentIndex,
     required this.onTabChanged,
-    this.profileImageUrl = kDefaultProfileImage,
   });
 
   final Widget body;
   final String title;
   final int currentIndex;
   final ValueChanged<int> onTabChanged;
-  final String profileImageUrl;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
         title: title,
-        profileImageUrl: profileImageUrl,
         onNotificationTap: () {},
         onSettingsTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
         ),
         onProfileTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => ProfilePage(avatarUrl: profileImageUrl),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
         ),
       ),
       body: body,

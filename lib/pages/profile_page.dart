@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../components/custom_app_bar.dart' show kDefaultProfileImage;
 import '../components/discovery_card.dart';
+import '../components/stats_row.dart';
+import '../components/user_avatar.dart';
+import '../components/verified_name.dart';
 import '../core/app_theme.dart';
+import '../core/user_scope.dart';
+import 'settings_page.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MOCK DATA — ganti dengan data dari repository/API
@@ -10,16 +14,12 @@ import '../core/app_theme.dart';
 
 class _ProfileData {
   const _ProfileData({
-    required this.name,
-    required this.isVerified,
     required this.bio,
     required this.logs,
     required this.rank,
     required this.badges,
   });
 
-  final String name;
-  final bool isVerified;
   final String bio;
   final int logs;
   final int rank;
@@ -27,8 +27,6 @@ class _ProfileData {
 }
 
 const _kProfile = _ProfileData(
-  name: 'Alex Ranger',
-  isVerified: true,
   bio: 'Passionate naturalist exploring the temperate forests of the UK. '
       'Documenting biodiversity one sprout at a time.',
   logs: 142,
@@ -162,9 +160,7 @@ const _kMissionLine =
 /// Dibuka dari avatar di kanan atas [CustomAppBar] (lewat [MainLayout]).
 /// Halaman ini di-push di atas shell, jadi tidak memakai bottom nav.
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, this.avatarUrl = kDefaultProfileImage});
-
-  final String avatarUrl;
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -206,7 +202,9 @@ class _ProfilePageState extends State<ProfilePage>
         title: const Text('Ranger Profile'),
         actions: [
           IconButton(
-            onPressed: () {}, // TODO: buka halaman pengaturan
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+            ),
             tooltip: 'Pengaturan',
             icon: const Icon(Icons.settings_outlined),
           ),
@@ -221,7 +219,6 @@ class _ProfilePageState extends State<ProfilePage>
             // ── ① Avatar, nama, badge, bio
             SliverToBoxAdapter(
               child: _ProfileHeader(
-                avatarUrl: widget.avatarUrl,
                 data: _kProfile,
                 // TODO: buka layar Edit Profile (foto, nama, bio sekaligus)
                 onEditProfile: () {},
@@ -296,12 +293,10 @@ class _ProfilePageState extends State<ProfilePage>
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
-    required this.avatarUrl,
     required this.data,
     required this.onEditProfile,
   });
 
-  final String avatarUrl;
   final _ProfileData data;
   final VoidCallback onEditProfile;
 
@@ -309,7 +304,7 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final brand = context.wsBrand;
+    final user = context.currentUser;
 
     return Stack(
       children: [
@@ -322,36 +317,17 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Avatar di tengah
-                _Avatar(url: avatarUrl, radius: 50),
+                const UserAvatar(size: UserAvatarSize.large),
                 const SizedBox(height: 14),
 
                 // Nama + tanda verified (Material 3: Icons.verified)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        data.name,
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: tt.displayMedium!.copyWith(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                    ),
-                    if (data.isVerified) ...[
-                      const SizedBox(width: 6),
-                      Tooltip(
-                        message: 'Verified',
-                        child: Icon(Icons.verified,
-                            size: 22, color: brand.amber),
-                      ),
-                    ],
-                  ],
+                VerifiedName(
+                  name: user.name,
+                  isVerified: user.isVerified,
+                  fontSize: 26,
+                  iconSize: 22,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
 
@@ -389,34 +365,6 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.url, this.radius = 50});
-
-  final String url;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    // diameter total = radius*2 + 3 (jarak) *2 + 3 (cincin) *2 = radius*2 + 12
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: cs.primary, width: 3),
-        boxShadow: WsShadow.greenGlow(context),
-      ),
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: cs.surfaceContainer,
-        backgroundImage: NetworkImage(url),
-        onBackgroundImageError: (error, stack) {},
-      ),
-    );
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════
 //  ② STATS CARD
 // ═══════════════════════════════════════════════════════════════════
@@ -438,95 +386,28 @@ class _StatsCard extends StatelessWidget {
         border: Border.all(color: cs.outlineVariant),
         boxShadow: WsShadow.card(context),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ProfileStat(
-              icon: Icons.photo_camera_outlined,
-              label: 'LOGS',
-              value: '${data.logs}',
-            ),
+      child: StatsRow(
+        layout: StatLayout.inline,
+        items: [
+          StatItemData(
+            icon: Icons.photo_camera_outlined,
+            label: 'LOGS',
+            value: '${data.logs}',
           ),
-          const _StatDivider(),
-          Expanded(
-            child: _ProfileStat(
-              icon: Icons.leaderboard_outlined,
-              label: 'RANK',
-              value: '${data.rank}',
-            ),
+          StatItemData(
+            icon: Icons.leaderboard_outlined,
+            label: 'RANK',
+            value: '${data.rank}',
           ),
-          const _StatDivider(),
-          Expanded(
-            child: _ProfileStat(
-              icon: Icons.workspace_premium_outlined,
-              label: 'BADGES',
-              value: '${data.badges}',
-            ),
+          StatItemData(
+            icon: Icons.workspace_premium_outlined,
+            label: 'BADGES',
+            value: '${data.badges}',
           ),
         ],
       ),
     );
   }
-}
-
-class _ProfileStat extends StatelessWidget {
-  const _ProfileStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: cs.primary, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              value,
-              style: context.wsMono.stat.copyWith(
-                fontSize: 24,
-                color: cs.onSurface,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: tt.labelMedium!.copyWith(
-            fontSize: 11,
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 44,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: Theme.of(context).colorScheme.outlineVariant,
-  );
 }
 
 // ═══════════════════════════════════════════════════════════════════

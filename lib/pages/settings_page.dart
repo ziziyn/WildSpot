@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../components/user_avatar.dart';
+import '../components/verified_name.dart';
 import '../core/app_theme.dart';
+import '../core/user_scope.dart';
 
 // ─────────────────────────────────────────────
 //  Data menu — semua teks ada di satu tempat
@@ -55,16 +58,12 @@ RoundedRectangleBorder _cardShape(ColorScheme cs) => RoundedRectangleBorder(
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     super.key,
-    this.userName = 'Alex Ranger',
     this.joinedLabel = 'Joined October 2023',
-    this.badgeLabel = 'PRO RANGER',
     this.appVersion = 'v2.4.0 • Build 102',
     this.onLogOut,
   });
 
-  final String userName;
   final String joinedLabel;
-  final String badgeLabel;
   final String appVersion;
 
   /// Dipanggil setelah pengguna menekan konfirmasi Log Out.
@@ -193,11 +192,7 @@ class SettingsPage extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
-                _ProfileCard(
-                  name: userName,
-                  joinedLabel: joinedLabel,
-                  badgeLabel: badgeLabel,
-                ),
+                _ProfileCard(joinedLabel: joinedLabel),
                 for (final group in groups) _SettingsSection(group: group),
                 Padding(
                   padding: const EdgeInsets.only(top: 32),
@@ -231,27 +226,15 @@ class SettingsPage extends StatelessWidget {
 // ─────────────────────────────────────────────
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.name,
-    required this.joinedLabel,
-    required this.badgeLabel,
-  });
+  const _ProfileCard({required this.joinedLabel});
 
-  final String name;
   final String joinedLabel;
-  final String badgeLabel;
-
-  /// Huruf pertama nama (huruf besar) untuk avatar; '?' kalau nama kosong.
-  String get _initial {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) return '?';
-    return String.fromCharCode(trimmed.runes.first).toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final user = context.currentUser;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -260,51 +243,22 @@ class _ProfileCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: cs.primaryContainer,
-              // Dekoratif: nama sudah dibaca di sebelahnya.
-              child: ExcludeSemantics(
-                child: Text(
-                  _initial,
-                  style: tt.titleLarge?.copyWith(
-                    fontSize: 22,
-                    color: cs.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ),
+            const UserAvatar(size: UserAvatarSize.medium),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tt.titleLarge?.copyWith(fontSize: 18),
+                  VerifiedName(
+                    name: user.name,
+                    isVerified: user.isVerified,
+                    fontSize: 18,
+                    iconSize: 16,
                   ),
                   const SizedBox(height: 4),
                   Text(joinedLabel, style: tt.bodySmall),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: cs.primaryContainer,
-                borderRadius: const BorderRadius.all(WsRadius.pill),
-              ),
-              child: Text(
-                badgeLabel,
-                style: tt.labelSmall?.copyWith(
-                  color: cs.onPrimaryContainer,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
               ),
             ),
           ],

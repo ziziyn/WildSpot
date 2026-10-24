@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 
-const String kDefaultProfileImage =
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80';
+import 'user_avatar.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
     super.key,
     required this.title,
-    this.profileImageUrl = kDefaultProfileImage,
     this.onNotificationTap,
     this.onSettingsTap,
     this.onProfileTap,
   });
 
   final String title;
-  final String profileImageUrl;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onSettingsTap;
   final VoidCallback? onProfileTap;
@@ -55,12 +52,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onProfileTap,
           tooltip: 'Profil',
           padding: const EdgeInsets.only(right: 8),
-          icon: CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.white24,
-            backgroundImage: NetworkImage(profileImageUrl),
-            onBackgroundImageError: (error, stack) {},
-          ),
+          icon: const UserAvatar(size: UserAvatarSize.small),
         ),
       ],
     );

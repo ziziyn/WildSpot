@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../components/discovery_card.dart';
+import '../components/stats_row.dart';
 import '../core/app_theme.dart';
 import '../layouts/main_layout.dart';
 import 'explore_page.dart';
@@ -13,8 +15,6 @@ import 'explore_page.dart';
 const _kMedalRibbon = Color(0xFFD32F2F); // pita merah medali
 const _kMedalStar = Color(0xFFFFB300); // bintang kuning medali
 const _kFlame = Color(0xFFFF6D00); // api oranye badge STREAKING
-const _kChipFungi = Color(0xFFE07B12); // chip kategori Fungi
-const _kChipFlora = Color(0xFF2CB67D); // chip kategori Flora
 
 // ═══════════════════════════════════════════════════════════════════
 //  MOCK DATA
@@ -510,34 +510,22 @@ class _DiscoveriesCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 3 stat columns
-          Row(
-            children: [
-              Expanded(
-                child: _StatColumn(
-                  icon: Icons.eco_outlined,
-                  iconColor: cs.primary,
-                  label: 'Total',
-                  value: '128',
-                ),
+          const StatsRow(
+            items: [
+              StatItemData(
+                icon: Icons.eco_outlined,
+                label: 'Total',
+                value: '128',
               ),
-              const _VerticalDivider(),
-              Expanded(
-                child: _StatColumn(
-                  icon: Icons.location_on_outlined,
-                  iconColor: cs.primary,
-                  label: 'Spots',
-                  value: '42',
-                ),
+              StatItemData(
+                icon: Icons.location_on_outlined,
+                label: 'Spots',
+                value: '42',
               ),
-              const _VerticalDivider(),
-              Expanded(
-                child: _StatColumn(
-                  icon: Icons.trending_up_rounded,
-                  iconColor: cs.primary,
-                  label: 'Rank',
-                  value: '#12',
-                  valueMono: true,
-                ),
+              StatItemData(
+                icon: Icons.trending_up_rounded,
+                label: 'Rank',
+                value: '#12',
               ),
             ],
           ),
@@ -600,58 +588,6 @@ class _DiscoveriesCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StatColumn extends StatelessWidget {
-  const _StatColumn({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    this.valueMono = false,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final bool valueMono;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: iconColor, size: 22),
-        const SizedBox(height: 6),
-        Text(label, style: tt.labelMedium!.copyWith(fontSize: 11, color: cs.onSurfaceVariant)),
-        const SizedBox(height: 3),
-        valueMono
-            ? Text(value,
-                style: context.wsMono.stat.copyWith(
-                  fontSize: 20,
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.w700,
-                ))
-            : Text(value,
-                style: context.wsMono.stat.copyWith(fontSize: 20, color: cs.onSurface)),
-      ],
-    );
-  }
-}
-
-class _VerticalDivider extends StatelessWidget {
-  const _VerticalDivider();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 1,
-        height: 52,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: Theme.of(context).colorScheme.outlineVariant,
-      );
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -918,171 +854,23 @@ class _NearbyDiscoveriesCarousel extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) => SizedBox(
-          width: cardWidth,
-          child: _DiscoveryTile(data: items[index]),
-        ),
-      ),
-    );
-  }
-}
-
-class _DiscoveryTile extends StatelessWidget {
-  const _DiscoveryTile({required this.data});
-
-  final _DiscoveryData data;
-
-  /// Warna chip sesuai kategori.
-  static Color _chipColor(String cat, ColorScheme cs) {
-    switch (cat.toLowerCase()) {
-      case 'fungi':
-        return _kChipFungi;
-      case 'flora':
-        return _kChipFlora;
-      default:
-        return cs.primary; // fauna
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final chip = _chipColor(data.category, cs);
-    final onImage = cs.surfaceContainerLowest; // putih, teks di atas foto
-
-    return Container(
-      // kartu putih rounded dengan shadow — memisah dari scaffold pastel
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLowest,
-        borderRadius: const BorderRadius.all(WsRadius.xl),
-        boxShadow: WsShadow.card(context),
-      ),
-      clipBehavior: Clip.antiAlias, // gambar otomatis clip ke sudut kartu
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── foto dengan overlay; mengisi sisa tinggi kartu
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // gambar
-                Image.network(
-                  data.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stack) => Container(
-                    color: cs.surfaceContainer,
-                    child: Icon(Icons.image_not_supported_outlined,
-                        color: cs.outline),
-                  ),
-                ),
-                // gradient overlay bawah
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [0.45, 1.0],
-                      colors: [
-                        Colors.transparent,
-                        cs.shadow.withAlpha(180),
-                      ],
-                    ),
-                  ),
-                ),
-                // kategori chip (atas-kiri)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: chip.withAlpha(200),
-                      borderRadius: const BorderRadius.all(WsRadius.pill),
-                    ),
-                    child: Text(data.category,
-                        style: tt.labelMedium!.copyWith(
-                            fontSize: 11,
-                            color: onImage,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ),
-                // jarak (bawah-kiri)
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.location_on, color: onImage, size: 13),
-                      const SizedBox(width: 3),
-                      Text(data.distance,
-                          style: tt.labelMedium!.copyWith(
-                              fontSize: 11,
-                              color: onImage,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
+        itemBuilder: (context, index) {
+          final data = items[index];
+          return SizedBox(
+            width: cardWidth,
+            child: DiscoveryCard(
+              category: data.category,
+              imageUrl: data.imageUrl,
+              title: data.name,
+              imageLabel: data.distance,
+              author: DiscoveryAuthor(
+                avatarUrl: data.avatarUrl,
+                name: data.author,
+                timeAgo: data.timeAgo,
+              ),
             ),
-          ),
-
-          // ── teks section di dalam kartu, dengan padding internal
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // nama spesies
-                Text(
-                  data.name,
-                  style: tt.titleLarge!.copyWith(
-                      fontSize: 14,
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.w800),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 6),
-
-                // avatar + author + waktu
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 11,
-                      backgroundColor: cs.surfaceContainer,
-                      backgroundImage: NetworkImage(data.avatarUrl),
-                      onBackgroundImageError: (error, stack) {},
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(data.author,
-                          style: tt.labelMedium!.copyWith(
-                              fontSize: 11,
-                              color: cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w500),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.access_time_rounded,
-                        size: 11, color: cs.outline),
-                    const SizedBox(width: 3),
-                    Text(data.timeAgo,
-                        style: tt.labelMedium!.copyWith(
-                            fontSize: 11,
-                            color: cs.outline,
-                            fontWeight: FontWeight.w400)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
