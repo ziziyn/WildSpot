@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../core/app_theme.dart';
+import '../components/discovery_card.dart';
 import 'camera_page.dart';
 
 // ============================================================
@@ -18,15 +19,13 @@ class ObservationScreen extends StatefulWidget {
 }
 
 class _ObservationPageState extends State<ObservationScreen> {
-  final TextEditingController _searchController = TextEditingController();
-
   List<_Observation> _observations = [];
 
   bool _isLoading = true;
   bool _isLoadingMore = false;
 
   String? _errorMessage;
-  String _selectedTab = 'Recent';
+  String _selectedCategory = 'All';
 
   int _currentPage = 1;
 
@@ -38,13 +37,26 @@ class _ObservationPageState extends State<ObservationScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
   // ============================================================
   // FETCH OBSERVATIONS
   // ============================================================
+
+  Map<String, String> _categoryQuery() {
+    switch (_selectedCategory) {
+      case 'Flora':
+        return {'iconic_taxa': 'Plantae'};
+      case 'Fauna':
+        return {'iconic_taxa': 'Animalia'};
+      case 'Fungi':
+        return {'iconic_taxa': 'Fungi'};
+      case 'All':
+      default:
+        return {};
+    }
+  }
 
   Future<void> _fetchObservations() async {
     setState(() {
@@ -61,6 +73,7 @@ class _ObservationPageState extends State<ObservationScreen> {
         'order': 'desc',
         'photos': 'true',
         'geo': 'true',
+        ..._categoryQuery(),
       });
 
       final response = await http.get(uri);
@@ -91,62 +104,14 @@ class _ObservationPageState extends State<ObservationScreen> {
     }
   }
 
-  // ============================================================
-  // SEARCH BY TAG
-  // ============================================================
-
-  Future<void> _searchObservations(String query) async {
-    final searchQuery = query.trim();
-
-    if (searchQuery.isEmpty) {
-      await _fetchObservations();
-      return;
-    }
+  Future<void> _selectCategory(String category) async {
+    if (_selectedCategory == category) return;
 
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _currentPage = 1;
+      _selectedCategory = category;
     });
 
-    try {
-      final uri = Uri.https('api.inaturalist.org', '/v1/observations', {
-        'per_page': '30',
-        'page': '1',
-        'order_by': 'observed_on',
-        'order': 'desc',
-        'photos': 'true',
-        'geo': 'true',
-        'q': searchQuery,
-        'search_on': 'tags',
-      });
-
-      final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        throw Exception('API search request failed');
-      }
-
-      final Map<String, dynamic> jsonData =
-          jsonDecode(response.body) as Map<String, dynamic>;
-
-      final List<dynamic> results = jsonData['results'] as List<dynamic>? ?? [];
-
-      final observations = results
-          .map((item) => _Observation.fromJson(item as Map<String, dynamic>))
-          .where((item) => item.photoUrl.isNotEmpty)
-          .toList();
-
-      setState(() {
-        _observations = observations;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Unable to search observations.';
-      });
-    }
+    await _fetchObservations();
   }
 
   // ============================================================
@@ -170,6 +135,7 @@ class _ObservationPageState extends State<ObservationScreen> {
         'order': 'desc',
         'photos': 'true',
         'geo': 'true',
+        ..._categoryQuery(),
       });
 
       final response = await http.get(uri);
@@ -224,9 +190,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        _buildSearchBar(),
-                        const SizedBox(height: 14),
-                        _buildFilters(),
+                        _buildCategoryTabs(),
                         const SizedBox(height: 24),
                         _buildCommunityHeader(),
                         const SizedBox(height: 12),
@@ -261,102 +225,66 @@ class _ObservationPageState extends State<ObservationScreen> {
   }
 
   // ============================================================
-  // SEARCH BAR
+  // CATEGORY TABS
   // ============================================================
 
-  Widget _buildSearchBar() {
+  Widget _buildCategoryTabs() {
     final cs = Theme.of(context).colorScheme;
+    final brand = context.wsBrand;
+
+    const categories = ['All', 'Flora', 'Fauna', 'Fungi'];
 
     return Container(
-      height: 46,
+      height: 72,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(38),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.28)),
       ),
-      child: TextField(
-        controller: _searchController,
-        onSubmitted: (value) {
-          _searchObservations(value);
-        },
-        style: TextStyle(color: cs.primary, fontSize: 13),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: cs.onSurfaceVariant,
-            size: 20,
-          ),
-          hintText: 'Search by tag...',
-          hintStyle: TextStyle(
-            color: cs.onSurfaceVariant.withValues(alpha: 0.75),
-            fontSize: 13,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 13),
-        ),
-      ),
-    );
-  }
+      child: Row(
+        children: categories.map((category) {
+          final active = _selectedCategory == category;
 
-  // ============================================================
-  // FILTERS
-  // ============================================================
+          final categoryColor = category == 'All'
+              ? cs.primary
+              : discoveryCategoryColor(category, cs, brand);
 
-  Widget _buildFilters() {
-    final cs = Theme.of(context).colorScheme;
-
-    return Row(
-      children: [
-        _buildTab('Recent'),
-        const SizedBox(width: 7),
-        _buildTab('Nearby'),
-        const SizedBox(width: 7),
-        _buildTab('Popular'),
-        const Spacer(),
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: cs.surfaceContainer,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {},
-            icon: Icon(
-              Icons.tune_rounded,
-              color: cs.onSurfaceVariant,
-              size: 18,
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(34),
+                  onTap: () => _selectCategory(category),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    decoration: BoxDecoration(
+                      color: active ? categoryColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(34),
+                    ),
+                    child: Center(
+                      child: Text(
+                        category,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: active
+                              ? cs.surfaceContainerLowest
+                              : cs.onSurfaceVariant,
+                          fontSize: 14,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTab(String title) {
-    final cs = Theme.of(context).colorScheme;
-    final bool active = _selectedTab == title;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTab = title;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
-        decoration: BoxDecoration(
-          color: active ? cs.primary : cs.surfaceContainer,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: active ? cs.surface : cs.onSurfaceVariant,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -517,36 +445,34 @@ class _ObservationPageState extends State<ObservationScreen> {
               Positioned(
                 left: 12,
                 top: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cs.surface.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        observation.isFlora
-                            ? Icons.eco_rounded
-                            : Icons.pets_rounded,
-                        color: cs.primary,
-                        size: 13,
+                child: Builder(
+                  builder: (context) {
+                    final brand = context.wsBrand;
+                    final categoryColor = discoveryCategoryColor(
+                      observation.category,
+                      cs,
+                      brand,
+                    );
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
+                      decoration: BoxDecoration(
+                        color: categoryColor.withAlpha(200),
+                        borderRadius: const BorderRadius.all(WsRadius.pill),
+                      ),
+                      child: Text(
                         observation.category,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: cs.surfaceContainerLowest,
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
 
@@ -801,7 +727,7 @@ class _ObservationPageState extends State<ObservationScreen> {
           ),
           const SizedBox(height: 5),
           Text(
-            'Try another tag.',
+            'Try another category.',
             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
           ),
         ],
@@ -864,9 +790,15 @@ class _Observation {
     final String commonName =
         taxon['preferred_common_name']?.toString() ?? scientificName;
 
-    final String iconicTaxon = taxon['iconic_taxon_name']?.toString() ?? '';
+    final String iconicTaxon =
+        taxon['iconic_taxon_name']?.toString().trim() ?? '';
 
-    final bool isFlora = iconicTaxon == 'Plantae' || iconicTaxon == 'Fungi';
+    final String category = switch (iconicTaxon) {
+      'Plantae' => 'Flora',
+      'Animalia' => 'Fauna',
+      'Fungi' => 'Fungi',
+      _ => 'Fauna',
+    };
 
     // QUALITY GRADE
     final String qualityGrade =
@@ -900,7 +832,7 @@ class _Observation {
     return _Observation(
       commonName: commonName,
       scientificName: scientificName,
-      category: isFlora ? 'Flora' : 'Fauna',
+      category: category,
       qualityGrade: qualityGrade,
       location: fallbackLocation,
       photoUrl: photoUrl,
@@ -944,6 +876,4 @@ class _Observation {
         '${observedAt!.month}/'
         '${observedAt!.year}';
   }
-
-  bool get isFlora => category == 'Flora';
 }
