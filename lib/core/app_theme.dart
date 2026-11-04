@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────
+//  Fonts Constants (Single Source of Truth)
+// ─────────────────────────────────────────────
+abstract final class WsFonts {
+  static const sora    = 'Sora';
+  static const dmSans  = 'DM Sans';
+  static const ibmMono = 'IBM Plex Mono';
+}
+
+// ─────────────────────────────────────────────
 //  Brand tokens (non-M3 colors) — ThemeExtension
 // ─────────────────────────────────────────────
 
@@ -76,12 +85,10 @@ class WsMonoText extends ThemeExtension<WsMonoText> {
   /// Stat / numeric display (22sp, w700).
   final TextStyle stat;
 
-  static const String fontFamily = 'IBM Plex Mono';
-
   /// Builds the extension with colors derived from the given [ColorScheme].
   factory WsMonoText.fromColorScheme(ColorScheme scheme) => WsMonoText(
         stat: TextStyle(
-          fontFamily: fontFamily,
+          fontFamily: WsFonts.ibmMono,
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
@@ -143,9 +150,6 @@ abstract final class WsShadow {
 //  ThemeData factory
 // ─────────────────────────────────────────────
 
-const _fontSora   = 'Sora';
-const _fontDmSans = 'DM Sans';
-
 ThemeData buildWsTheme() {
   const brand = WsBrandColors.light;
 
@@ -154,57 +158,55 @@ ThemeData buildWsTheme() {
     brightness: Brightness.light,
   );
 
+  // Arsitektur tipografi: Dasarnya DM Sans, di-override untuk judul pakai Sora
+  final baseTextTheme = Typography.material2021().black.apply(fontFamily: WsFonts.dmSans);
+
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colorScheme.surface,
 
     // ── Typography (Sora / DM Sans) ─────────────────────────────────────
-    textTheme: TextTheme(
-      titleLarge: TextStyle(
-        fontFamily: _fontSora,
+    textTheme: baseTextTheme.copyWith(
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontFamily: WsFonts.sora,
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: colorScheme.onSurface,
       ),
-      displayMedium: TextStyle(
-        fontFamily: _fontSora,
+      displayMedium: baseTextTheme.displayMedium?.copyWith(
+        fontFamily: WsFonts.sora,
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: colorScheme.onSurface,
       ),
-      bodyLarge: TextStyle(
-        fontFamily: _fontDmSans,
+      // Dipertahankan agar sama persis secara visual dengan desain sebelumnya
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: colorScheme.onSurface,
       ),
-      bodyMedium: TextStyle(
-        fontFamily: _fontDmSans,
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: colorScheme.onSurface,
       ),
-      bodySmall: TextStyle(
-        fontFamily: _fontDmSans,
+      bodySmall: baseTextTheme.bodySmall?.copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: colorScheme.onSurfaceVariant,
       ),
-      labelLarge: TextStyle(
-        fontFamily: _fontDmSans,
+      labelLarge: baseTextTheme.labelLarge?.copyWith(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: colorScheme.onSurface,
       ),
-      labelMedium: TextStyle(
-        fontFamily: _fontDmSans,
+      labelMedium: baseTextTheme.labelMedium?.copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: colorScheme.onSurfaceVariant,
       ),
-      labelSmall: TextStyle(
-        fontFamily: _fontDmSans,
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         color: colorScheme.onSurfaceVariant,
@@ -222,17 +224,33 @@ ThemeData buildWsTheme() {
 
     // ── App Bar ─────────────────────────────────────────────────────────
     appBarTheme: AppBarTheme(
-      backgroundColor: brand.forest,
+      backgroundColor: colorScheme.primary, // Sinkron dengan warna BottomNav
       surfaceTintColor: Colors.transparent,
       elevation: 2,
       scrolledUnderElevation: 4,
-      shadowColor: colorScheme.shadow.withAlpha(0x42), // == Colors.black26
-      foregroundColor: colorScheme.onPrimary,          // == white in M3 light
+      shadowColor: colorScheme.shadow.withAlpha(0x42),
+      foregroundColor: colorScheme.onPrimary,
+      toolbarHeight: 64,
+      titleSpacing: 16,
+      centerTitle: false,
+      actionsPadding: const EdgeInsets.only(right: 16),
+      actionsIconTheme: IconThemeData(
+        size: 24,
+        color: colorScheme.onPrimary,
+      ),
       titleTextStyle: TextStyle(
-        fontFamily: _fontSora,
-        fontSize: 20,
+        fontFamily: WsFonts.sora,
+        fontSize: 22,
         fontWeight: FontWeight.w700,
         color: colorScheme.onPrimary,
+      ),
+    ),
+
+    // ── IconButton (Global Fix untuk Touch Target / Hover) ──────────────
+    iconButtonTheme: const IconButtonThemeData(
+      style: ButtonStyle(
+        minimumSize: WidgetStatePropertyAll(Size(48, 48)),
+        padding: WidgetStatePropertyAll(EdgeInsets.zero), // Buat hover simetris
       ),
     ),
 
@@ -243,9 +261,6 @@ ThemeData buildWsTheme() {
     ),
 
     // ── Navigation Bar (bottom nav, dipakai semua halaman) ─────────────
-    // Solid primary agar kontras tinggi terhadap konten (pasangan AppBar).
-    // Tab aktif ditandai pill putih transparan (state layer onPrimary), bukan
-    // primaryContainer, supaya tidak bentrok dengan warna container lain.
     navigationBarTheme: NavigationBarThemeData(
       height: 72,
       backgroundColor: colorScheme.primary,
@@ -267,7 +282,7 @@ ThemeData buildWsTheme() {
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return TextStyle(
-          fontFamily: _fontDmSans,
+          fontFamily: WsFonts.dmSans,
           fontSize: 11,
           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           color: selected
@@ -278,7 +293,6 @@ ThemeData buildWsTheme() {
     ),
 
     // ── Floating Action Button ──────────────────────────────────────────
-    // Satu warna FAB untuk seluruh app, tanpa warna per-instance.
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: colorScheme.primaryContainer,
       foregroundColor: colorScheme.onPrimaryContainer,
@@ -286,7 +300,6 @@ ThemeData buildWsTheme() {
     ),
 
     // ── Search Bar (M3 SearchBar) ───────────────────────────────────────
-    // Solid & opaque (tanpa transparansi) supaya terbaca di atas peta/foto.
     searchBarTheme: SearchBarThemeData(
       backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerLowest),
       surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
