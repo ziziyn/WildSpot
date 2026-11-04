@@ -6,6 +6,7 @@ import '../components/user_avatar.dart';
 import '../components/verified_name.dart';
 import '../core/app_theme.dart';
 import '../core/user_scope.dart';
+import 'edit_profile_page.dart';
 import 'settings_page.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -171,6 +172,9 @@ class _ProfilePageState extends State<ProfilePage>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
+  // Bio bisa diubah lewat Edit Profile. TODO: simpan ke repository/API.
+  String _bio = _kProfile.bio;
+
   @override
   void initState() {
     super.initState();
@@ -185,6 +189,55 @@ class _ProfilePageState extends State<ProfilePage>
   void dispose() {
     _fadeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _openEditProfile() async {
+    final newBio = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => EditProfilePage(initialBio: _bio),
+      ),
+    );
+    // null = user menekan Cancel / discard → tidak ada yang disimpan.
+    if (newBio == null || !mounted) return;
+    setState(() => _bio = newBio);
+    _showSavedToast();
+  }
+
+  /// Toast konfirmasi setelah perubahan profil disimpan. Warna eksplisit dari
+  /// theme (primaryContainer) agar tidak jatuh ke default SnackBar yang gelap.
+  void _showSavedToast() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: cs.primaryContainer,
+          elevation: 3,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(WsRadius.md),
+          ),
+          duration: const Duration(seconds: 3),
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: cs.primary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Profile updated successfully',
+                  style: tt.bodyMedium!.copyWith(
+                    color: cs.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   @override
@@ -219,9 +272,8 @@ class _ProfilePageState extends State<ProfilePage>
             // ── ① Avatar, nama, badge, bio
             SliverToBoxAdapter(
               child: _ProfileHeader(
-                data: _kProfile,
-                // TODO: buka layar Edit Profile (foto, nama, bio sekaligus)
-                onEditProfile: () {},
+                bio: _bio,
+                onEditProfile: _openEditProfile,
               ),
             ),
 
@@ -293,11 +345,11 @@ class _ProfilePageState extends State<ProfilePage>
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
-    required this.data,
+    required this.bio,
     required this.onEditProfile,
   });
 
-  final _ProfileData data;
+  final String bio;
   final VoidCallback onEditProfile;
 
   @override
@@ -333,7 +385,7 @@ class _ProfileHeader extends StatelessWidget {
 
                 // Bio rata tengah
                 Text(
-                  data.bio,
+                  bio,
                   maxLines: 4,
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
