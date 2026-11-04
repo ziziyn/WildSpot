@@ -4,7 +4,6 @@ import '../core/app_theme.dart';
 import '../components/auth_widget.dart';
 
 import 'login_page.dart';
-import 'register_page.dart';
 
 // ===========================================================================
 // ASSETS
@@ -32,12 +31,18 @@ class WelcomeScreen extends StatelessWidget {
           // -----------------------------------------------------------------
           // FOREST BACKGROUND
           // -----------------------------------------------------------------
-          Image.asset(
-            _kForestImage,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) {
-              return ColoredBox(color: brand.forest);
-            },
+          ColorFiltered(
+            colorFilter: const ColorFilter.mode(
+              Color(0x99000000),
+              BlendMode.darken,
+            ),
+            child: Image.asset(
+              _kForestImage,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) {
+                return ColoredBox(color: brand.forest);
+              },
+            ),
           ),
 
           // -----------------------------------------------------------------
@@ -67,12 +72,11 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Branding moved slightly lower.
+                  // Branding
                   const SizedBox(height: 100),
 
                   const Center(child: _Brand()),
 
-                  // Controlled spacing instead of Spacer.
                   const SizedBox(height: 120),
 
                   // -----------------------------------------------------------------
@@ -82,7 +86,7 @@ class WelcomeScreen extends StatelessWidget {
                     'Discover\nBiodiversity\nAround You',
                     style: text.displayMedium?.copyWith(
                       color: scheme.onPrimary,
-                      fontSize: 30,
+                      fontSize: 31,
                       fontWeight: FontWeight.w800,
                       height: 1.05,
                     ),
@@ -99,51 +103,47 @@ class WelcomeScreen extends StatelessWidget {
                     'real observations.',
                     style: text.bodyLarge?.copyWith(
                       color: scheme.onPrimary.withAlpha(220),
-                      fontSize: 18,
+                      fontSize: 19,
                       height: 1.35,
                     ),
                   ),
 
                   const SizedBox(height: 120),
 
-                  // ----------------------------------------------------------------
-                  // LOGIN
                   // -----------------------------------------------------------------
-                  PrimaryButton(
-                    label: 'Log in with Email',
-                    icon: Icons.mail_outline_rounded,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 10),
-
+                  // GET STARTED BUTTON
                   // -----------------------------------------------------------------
-                  // GOOGLE
-                  // -----------------------------------------------------------------
-                  GoogleButton(onPressed: () {}),
-
-                  const SizedBox(height: 16),
-
-                  // -----------------------------------------------------------------
-                  // REGISTER
-                  // -----------------------------------------------------------------
-                  Center(
-                    child: SwitchLink(
-                      prompt: "Don't have an account?",
-                      action: 'Sign up',
-                      promptColor: scheme.onPrimary,
-                      actionColor: scheme.primaryContainer,
-                      onTap: () {
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const RegisterScreen(),
+                            builder: (_) => const LoginScreen(),
                           ),
                         );
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: scheme.primaryContainer,
+                        foregroundColor: scheme.onPrimaryContainer,
+                        elevation: 2,
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Get Started',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.arrow_forward_rounded, size: 22),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -176,8 +176,7 @@ class _Brand extends StatelessWidget {
         // -------------------------------------------------------------------
         // ICON
         // -------------------------------------------------------------------
-        Icon(Icons.eco_rounded, size: 68, color: scheme.primaryContainer),
-
+        Icon(Icons.eco_rounded, size: 69, color: scheme.primaryContainer),
         const SizedBox(height: 4),
 
         // -------------------------------------------------------------------
@@ -186,7 +185,7 @@ class _Brand extends StatelessWidget {
         Text.rich(
           TextSpan(
             style: text.displayMedium?.copyWith(
-              fontSize: 48,
+              fontSize: 45,
               fontWeight: FontWeight.w800,
               color: scheme.onPrimary,
               height: 1,
@@ -210,7 +209,8 @@ class _Brand extends StatelessWidget {
           'EXPLORE  •  OBSERVE  •  PROTECT',
           style: text.labelSmall?.copyWith(
             color: scheme.onPrimary,
-            fontSize: 12,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
             letterSpacing: 3.5,
           ),
         ),
