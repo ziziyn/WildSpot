@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../components/user_avatar.dart';
@@ -275,7 +275,15 @@ class _LimitAlertFormatter extends TextInputFormatter {
   ) {
     if (newValue.text.characters.length <= maxLength) return newValue;
     onOverflow();
-    return LengthLimitingTextInputFormatter.truncate(newValue, maxLength);
+    final truncated = newValue.text.characters.take(maxLength).toString();
+    return newValue.copyWith(
+      text: truncated,
+      selection: newValue.selection.copyWith(
+        baseOffset: truncated.length.clamp(0, truncated.length),
+        extentOffset: truncated.length.clamp(0, truncated.length),
+      ),
+      composing: TextRange.empty,
+    );
   }
 }
 

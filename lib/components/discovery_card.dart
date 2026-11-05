@@ -191,7 +191,6 @@ class DiscoveryCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final m = size;
-    final chip = discoveryCategoryColor(category, cs, context.wsBrand);
     final onImage = cs.surfaceContainerLowest; // putih, teks di atas foto
 
     // ── foto + overlay
@@ -223,27 +222,11 @@ class DiscoveryCard extends StatelessWidget {
           left: chipPosition == DiscoveryChipPosition.topLeft ? m.inset : null,
           right:
               chipPosition == DiscoveryChipPosition.topRight ? m.inset : null,
-          child: Container(
+          child: DiscoveryCategoryBadge(
+            category: category,
+            showIcon: showCategoryIcon,
+            fontSize: m.chipFont,
             padding: m.chipPadding,
-            decoration: BoxDecoration(
-              color: chip.withAlpha(200),
-              borderRadius: const BorderRadius.all(WsRadius.pill),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showCategoryIcon) ...[
-                  Icon(discoveryCategoryIcon(category),
-                      size: m.chipFont + 2, color: onImage),
-                  const SizedBox(width: 4),
-                ],
-                Text(category,
-                    style: tt.labelMedium!.copyWith(
-                        fontSize: m.chipFont,
-                        color: onImage,
-                        fontWeight: FontWeight.w700)),
-              ],
-            ),
           ),
         ),
         // label kiri-bawah (mis. jarak)
@@ -396,6 +379,69 @@ class _DetailRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis),
         ),
       ],
+    );
+  }
+}
+
+/// Badge kategori taksonomi yang menampilkan warna dinamis:
+/// Flora → hijau (primary), Fauna → oranye (amber), Fungi → cokelat bark.
+///
+/// Digunakan di [DiscoveryCard] (Home, Journal) dan [CommunityPostCard] (Community)
+/// untuk menjaga konsistensi visual lintas halaman (Shneiderman Rule #1).
+class DiscoveryCategoryBadge extends StatelessWidget {
+  const DiscoveryCategoryBadge({
+    super.key,
+    required this.category,
+    this.showIcon = false,
+    this.fontSize,
+    this.padding,
+  });
+
+  /// 'Fauna' | 'Flora' | 'Fungi' (atau label enum kategori).
+  final String category;
+  final bool showIcon;
+  final double? fontSize;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    if (category.isEmpty || category.toLowerCase() == 'all') {
+      return const SizedBox.shrink();
+    }
+
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final color = discoveryCategoryColor(category, cs, context.wsBrand);
+    final onImage = cs.surfaceContainerLowest;
+    final font = fontSize ?? 11.0;
+
+    return Container(
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(200),
+        borderRadius: const BorderRadius.all(WsRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showIcon) ...[
+            Icon(
+              discoveryCategoryIcon(category),
+              size: font + 2,
+              color: onImage,
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            category,
+            style: tt.labelMedium!.copyWith(
+              fontSize: font,
+              color: onImage,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

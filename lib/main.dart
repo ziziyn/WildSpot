@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'core/app_theme.dart';
 import 'core/user_scope.dart';
 import 'layouts/main_layout.dart';
-import 'pages/home_page.dart';
+import 'pages/community_page.dart';
 import 'pages/explore_page.dart';
+import 'pages/home_page.dart';
 import 'pages/observation_page.dart';
 import 'pages/welcome_page.dart';
+import 'repositories/mock_community_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,11 +83,23 @@ class _AppShellState extends State<AppShell> {
     if (index == 2) {
       return const ObservationScreen();
     }
+    if (index == 4) {
+      return const CommunityPage(repository: MockCommunityRepository());
+    }
     return Center(child: Text('${_titles[index]} (coming soon)'));
   }
 
+  // CommunityPage membawa Scaffold, AppBar, dan BottomNav sendiri sehingga
+  // tidak dibungkus MainLayout — hindari widget Scaffold ganda.
   @override
   Widget build(BuildContext context) {
+    if (_index == 4) {
+      return CommunityPage(
+        key: const ValueKey('community'),
+        repository: const MockCommunityRepository(),
+        onTabChanged: (i) => setState(() => _index = i),
+      );
+    }
     return MainLayout(
       title: _titles[_index],
       currentIndex: _index,

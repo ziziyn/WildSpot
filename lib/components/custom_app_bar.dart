@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'user_avatar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -9,11 +10,7 @@ import 'user_avatar.dart';
 /// corresponding AppBar icon can switch between its outlined (idle) and
 /// filled (active) variants — following the M3 Navigation State Layer
 /// iconography convention.
-enum AppBarActivePage {
-  notifications,
-  settings,
-  none,
-}
+enum AppBarActivePage { notifications, settings, none }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CustomAppBar
@@ -37,6 +34,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
     super.key,
     required this.title,
+    this.onSearchTap,
     this.onNotificationTap,
     this.onSettingsTap,
     this.onProfileTap,
@@ -46,6 +44,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// The screen title shown in the leading area.
   final String title;
+
+  /// When set, shows a search icon before the other actions.
+  final VoidCallback? onSearchTap;
 
   /// Callback when the notification bell is tapped.
   final VoidCallback? onNotificationTap;
@@ -70,12 +71,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       actions: [
+        if (onSearchTap != null)
+          IconButton(
+            onPressed: onSearchTap,
+            tooltip: 'Search',
+            icon: const Icon(Icons.search),
+          ),
         _NotificationButton(
           onTap: onNotificationTap,
           hasUnread: hasUnreadNotifications,
@@ -85,9 +88,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           onTap: onSettingsTap,
           isActive: activePage == AppBarActivePage.settings,
         ),
-        _ProfileButton(
-          onTap: onProfileTap,
-        ),
+        _ProfileButton(onTap: onProfileTap),
       ],
     );
   }
@@ -113,7 +114,8 @@ class _NotificationButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // M3 State Layer iconography: filled = active destination, outlined = idle.
     final iconData = isActive
-        ? Icons.notifications                // filled — active state
+        ? Icons
+              .notifications // filled — active state
         : Icons.notifications_none_outlined; // outlined — idle state
 
     // Badge membungkus widget Icon secara langsung agar posisinya akurat
@@ -135,10 +137,7 @@ class _NotificationButton extends StatelessWidget {
 
 /// Settings gear icon.
 class _SettingsButton extends StatelessWidget {
-  const _SettingsButton({
-    required this.onTap,
-    required this.isActive,
-  });
+  const _SettingsButton({required this.onTap, required this.isActive});
 
   final VoidCallback? onTap;
   final bool isActive;
@@ -146,14 +145,11 @@ class _SettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = isActive
-        ? Icons.settings            // filled — active state
-        : Icons.settings_outlined;  // outlined — idle state
+        ? Icons
+              .settings // filled — active state
+        : Icons.settings_outlined; // outlined — idle state
 
-    return IconButton(
-      onPressed: onTap,
-      tooltip: 'Settings',
-      icon: Icon(icon),
-    );
+    return IconButton(onPressed: onTap, tooltip: 'Settings', icon: Icon(icon));
   }
 }
 

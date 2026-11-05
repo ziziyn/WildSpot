@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../components/user_avatar.dart';
-import '../components/verified_name.dart';
 import '../core/app_theme.dart';
-import '../core/user_scope.dart';
 
 // ─────────────────────────────────────────────
 //  Data menu — semua teks ada di satu tempat
@@ -53,17 +50,16 @@ RoundedRectangleBorder _cardShape(ColorScheme cs) => RoundedRectangleBorder(
 /// Halaman pengaturan. Dibuka sebagai halaman penuh lewat `Navigator.push`
 /// (tanpa bottom nav), mengikuti pola halaman Camera.
 ///
-/// Data profil dan aksi Log Out diteruskan lewat parameter; belum ada state
-/// atau logika bisnis di halaman ini.
+/// Profil pengguna tidak ditampilkan di sini (Separation of Concerns):
+/// identitas sudah diakomodasi di AppBar. Halaman ini murni mengelola
+/// konfigurasi aplikasi dan akun.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     super.key,
-    this.joinedLabel = 'Joined October 2023',
     this.appVersion = 'v2.4.0 • Build 102',
     this.onLogOut,
   });
 
-  final String joinedLabel;
   final String appVersion;
 
   /// Dipanggil setelah pengguna menekan konfirmasi Log Out.
@@ -136,7 +132,7 @@ class SettingsPage extends StatelessWidget {
             onTap: _noop,
           ),
           _SettingsItem(
-            icon: Icons.notifications_none,
+            icon: Icons.notifications_none_outlined,
             title: 'Push Notifications',
             subtitle: 'Alerts for nearby species and missions',
             onTap: _noop,
@@ -190,10 +186,14 @@ class SettingsPage extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
+              // Padding top 16 → satu sumber jarak tunggal antara AppBar dan
+              // seksi pertama. _SettingsSection group pertama (isFirst: true)
+              // memakai subheader top: 0 sehingga tidak terjadi akumulasi
+              // ganda (16 ListView + 32 subheader = 48 yang janggal).
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
-                _ProfileCard(joinedLabel: joinedLabel),
-                for (final group in groups) _SettingsSection(group: group),
+                for (var i = 0; i < groups.length; i++)
+                  _SettingsSection(group: groups[i], isFirst: i == 0),
                 Padding(
                   padding: const EdgeInsets.only(top: 32),
                   child: Column(
@@ -222,60 +222,18 @@ class SettingsPage extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Profil
-// ─────────────────────────────────────────────
-
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.joinedLabel});
-
-  final String joinedLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final user = context.currentUser;
-
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: _cardShape(cs),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const UserAvatar(size: UserAvatarSize.medium),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  VerifiedName(
-                    name: user.name,
-                    isVerified: user.isVerified,
-                    fontSize: 18,
-                    iconSize: 16,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(joinedLabel, style: tt.bodySmall),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
 //  Satu kategori = subheader (di luar) + satu Card
 // ─────────────────────────────────────────────
 
 class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({required this.group});
+  const _SettingsSection({required this.group, this.isFirst = false});
 
   final _SettingsGroup group;
+
+  /// Ketika `true` (hanya group pertama dalam ListView), padding atas
+  /// subheader diset ke 0 sehingga tidak berakumulasi dengan padding
+  /// atas ListView — Single Source of Truth untuk jarak AppBar → konten.
+  final bool isFirst;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +245,15 @@ class _SettingsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(16, group.isolated ? 48 : 32, 16, 8),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            // isolated → 48dp antar-aksi krusial
+            // isFirst  → 0dp: ListView padding sudah menjadi satu-satunya sumber atas
+            // selainnya → 24dp antar-seksi (M3 spacing scale)
+            group.isolated ? 48 : (isFirst ? 0 : 24),
+            16,
+            8,
+          ),
           child: Semantics(
             header: true,
             child: Text(

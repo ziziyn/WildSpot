@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
-import '../components/auth_widget.dart';
 
 import 'login_page.dart';
 
@@ -206,7 +205,7 @@ class _Brand extends StatelessWidget {
         // TAGLINE
         // -------------------------------------------------------------------
         Text(
-          'EXPLORE  •  OBSERVE  •  PROTECT',
+          'EXPLORE  â€¢  OBSERVE  â€¢  PROTECT',
           style: text.labelSmall?.copyWith(
             color: scheme.onPrimary,
             fontSize: 12.5,
