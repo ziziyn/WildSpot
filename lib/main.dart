@@ -8,6 +8,7 @@ import 'pages/home_page.dart';
 import 'pages/explore_page.dart';
 import 'pages/observation_page.dart';
 import 'pages/welcome_page.dart';
+import 'pages/mission_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,6 +81,9 @@ class _AppShellState extends State<AppShell> {
     }
     if (index == 2) {
       return const ObservationScreen();
+    }
+    if (index == 3) {
+      return const MissionPage();
     }
     return Center(child: Text('${_titles[index]} (coming soon)'));
   }
