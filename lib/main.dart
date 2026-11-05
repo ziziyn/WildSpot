@@ -7,6 +7,7 @@ import 'layouts/main_layout.dart';
 import 'pages/community_page.dart';
 import 'pages/explore_page.dart';
 import 'pages/home_page.dart';
+import 'pages/mission_page.dart';
 import 'pages/observation_page.dart';
 import 'pages/welcome_page.dart';
 import 'repositories/mock_community_repository.dart';
@@ -73,6 +74,7 @@ class _AppShellState extends State<AppShell> {
     'Missions',
     'Community',
   ];
+
   Widget _pageFor(int index) {
     if (index == 0) {
       return const HomePage();
@@ -82,6 +84,9 @@ class _AppShellState extends State<AppShell> {
     }
     if (index == 2) {
       return const ObservationScreen();
+    }
+    if (index == 3) {
+      return const MissionPage();
     }
     if (index == 4) {
       return const CommunityPage(repository: MockCommunityRepository());

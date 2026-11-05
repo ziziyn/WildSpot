@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             AuthField(
               label: 'Name',
-              hint: 'Enter your name',
+              hint: 'Three Works Too',
               icon: Icons.person_outline_rounded,
               controller: _nameController,
               textInputAction: TextInputAction.next,
@@ -136,7 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             AuthField(
               label: 'Email',
-              hint: 'Enter your email',
+              hint: 'name@example.com',
               icon: Icons.mail_outline_rounded,
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,

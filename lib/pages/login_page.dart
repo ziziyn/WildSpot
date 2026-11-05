@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             AuthField(
               label: 'Email',
-              hint: 'Enter your email',
+              hint: 'name@example.com',
               icon: Icons.mail_outline_rounded,
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,

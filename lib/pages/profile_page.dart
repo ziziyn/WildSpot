@@ -197,15 +197,14 @@ class _ProfilePageState extends State<ProfilePage>
         builder: (_) => EditProfilePage(initialBio: _bio),
       ),
     );
-    // null = user menekan Cancel / discard → tidak ada yang disimpan.
     if (newBio == null || !mounted) return;
     setState(() => _bio = newBio);
-    _showSavedToast();
+    _showUpdatedToast();
   }
 
-  /// Toast konfirmasi setelah perubahan profil disimpan. Warna eksplisit dari
-  /// theme (primaryContainer) agar tidak jatuh ke default SnackBar yang gelap.
-  void _showSavedToast() {
+  /// Toast konfirmasi setelah Edit Profile disimpan. Warna dari theme
+  /// (primaryContainer), bukan default SnackBar yang gelap.
+  void _showUpdatedToast() {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -215,7 +214,6 @@ class _ProfilePageState extends State<ProfilePage>
         SnackBar(
           behavior: SnackBarBehavior.floating,
           backgroundColor: cs.primaryContainer,
-          elevation: 3,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(WsRadius.md),
@@ -223,7 +221,7 @@ class _ProfilePageState extends State<ProfilePage>
           duration: const Duration(seconds: 3),
           content: Row(
             children: [
-              Icon(Icons.check_circle_outline, color: cs.primary, size: 20),
+              Icon(Icons.check_circle_outline, color: cs.onPrimaryContainer),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -340,7 +338,7 @@ class _ProfilePageState extends State<ProfilePage>
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ① HEADER (avatar di tengah, nama + verified, bio rata tengah)
+//  ① HEADER (avatar di tengah, nama + verified, bio rata tengah, Edit Profile)
 // ═══════════════════════════════════════════════════════════════════
 
 class _ProfileHeader extends StatelessWidget {
@@ -358,61 +356,64 @@ class _ProfileHeader extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final user = context.currentUser;
 
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Avatar di tengah
-                const UserAvatar(size: UserAvatarSize.large),
-                const SizedBox(height: 14),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Avatar di tengah
+            const UserAvatar(size: UserAvatarSize.large),
+            const SizedBox(height: 14),
 
-                // Nama + tanda verified (Material 3: Icons.verified)
-                VerifiedName(
-                  name: user.name,
-                  isVerified: user.isVerified,
-                  fontSize: 26,
-                  iconSize: 22,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-
-                // Bio rata tengah
-                Text(
-                  bio,
-                  maxLines: 4,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.bodyMedium!.copyWith(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ],
+            // Nama + tanda verified (Material 3: Icons.verified)
+            VerifiedName(
+              name: user.name,
+              isVerified: user.isVerified,
+              fontSize: 26,
+              iconSize: 22,
+              maxLines: 2,
+              textAlign: TextAlign.center,
             ),
-          ),
-        ),
+            const SizedBox(height: 8),
 
-        // Edit Profile: hanya ikon pena (tanpa latar) di pojok kanan atas,
-        // tepat di bawah ikon Pengaturan. Kotak sentuh 48dp berpusat 28dp
-        // dari tepi kanan (satu sumbu dengan Pengaturan).
-        Positioned(
-          top: 0,
-          right: 4,
-          child: IconButton(
-            onPressed: onEditProfile,
-            tooltip: 'Edit Profile',
-            icon: const Icon(Icons.edit_outlined, size: 20),
-          ),
+            // Bio rata tengah
+            Text(
+              bio,
+              maxLines: 4,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: tt.bodyMedium!.copyWith(
+                fontSize: 14,
+                height: 1.4,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Edit Profile: sengaja kecil (tinggi 32dp) dan tonal karena bukan
+            // aksi utama halaman ini. Area sentuh tetap 48dp (bawaan Material).
+            FilledButton.icon(
+              onPressed: onEditProfile,
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('Edit Profile'),
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
+                minimumSize: const Size(0, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                textStyle: tt.labelLarge!.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+                shape: const StadiumBorder(),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -2,10 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/app_theme.dart';
+import 'upload_log_page.dart';
 
 // ---- Data statis & placeholder ----------------------------------------------
 const _previewImage =
     'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&q=80';
+
+// Data hardcode untuk Upload Log.
+// TODO: ganti dengan foto dari kamera, hasil deteksi lokasi, dan daftar nama
+// dari server.
+const _sampleLocationName = "Major's Hill Park, Ottawa";
+const _sampleLatitude = 45.4215;
+const _sampleLongitude = -75.6972;
+const _sampleNames = <String, List<String>>{
+  'Flora': ['Sword Fern', 'Bracken Fern', 'Maidenhair Fern'],
+  'Fauna': ['Red Fox', 'Eastern Chipmunk', 'Great Blue Heron'],
+  'Fungi': ['Fly Agaric', 'Chanterelle', 'Turkey Tail'],
+};
 
 class _Category {
   const _Category(this.label, {this.icon, this.imageIcon});
@@ -51,6 +64,34 @@ class _CameraPageState extends State<CameraPage> {
 
   /// Default: "Plant" aktif, sesuai mockup.
   int _selected = 1;
+
+  /// Penghitung foto tambahan dari tombol "+" di Upload Log (placeholder).
+  int _extraShots = 0;
+
+  /// Tombol shutter: kirim data hardcode ke halaman Upload Log.
+  Future<void> _openUploadLog() async {
+    final category = _categories[_selected].label;
+
+    // Hasilnya (UploadLogData) belum dipakai.
+    // TODO: kirim ke server lalu kembali ke Observation.
+    await Navigator.of(context).push<UploadLogData>(
+      MaterialPageRoute<UploadLogData>(
+        builder: (_) => UploadLogPage(
+          category: category,
+          photos: const [NetworkImage(_previewImage)],
+          locationName: _sampleLocationName,
+          latitude: _sampleLatitude,
+          longitude: _sampleLongitude,
+          capturedAt: DateTime.now(),
+          knownNames: _sampleNames[category] ?? const [],
+          // Sementara: "+" langsung menambah foto baru (anggap sudah dipotret).
+          // TODO: buka kamera lagi dan kembalikan foto yang diambil.
+          onAddPhoto: () async =>
+              NetworkImage('$_previewImage&shot=${++_extraShots}'),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +186,7 @@ class _CameraPageState extends State<CameraPage> {
                             tooltip: 'Flash',
                             onPressed: () {},
                           ),
-                          _ShutterButton(onPressed: () {}),
+                          _ShutterButton(onPressed: _openUploadLog),
                           _FloatingIconButton(
                             icon: const Icon(Icons.cameraswitch_outlined),
                             tooltip: 'Flip kamera',

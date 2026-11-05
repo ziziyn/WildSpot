@@ -260,12 +260,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 //  FIELD DENGAN LABEL MENGAMBANG, HELPER, DAN COUNTER "n / max"
 // ═══════════════════════════════════════════════════════════════════
 
-/// Memotong input di [maxLength] karakter dan memberi tahu lewat [onOverflow]
-/// saat user mencoba mengetik/paste melebihi batas.
+/// Membatasi input di [maxLength] karakter (lewat formatter bawaan Flutter) dan
+/// memberi tahu lewat [onOverflow] saat user mencoba mengetik/paste melebihi
+/// batas.
 class _LimitAlertFormatter extends TextInputFormatter {
-  _LimitAlertFormatter({required this.maxLength, required this.onOverflow});
+  _LimitAlertFormatter({required int maxLength, required this.onOverflow})
+      : _inner = LengthLimitingTextInputFormatter(maxLength);
 
-  final int maxLength;
+  final LengthLimitingTextInputFormatter _inner;
   final VoidCallback onOverflow;
 
   @override
@@ -273,17 +275,9 @@ class _LimitAlertFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.text.characters.length <= maxLength) return newValue;
-    onOverflow();
-    final truncated = newValue.text.characters.take(maxLength).toString();
-    return newValue.copyWith(
-      text: truncated,
-      selection: newValue.selection.copyWith(
-        baseOffset: truncated.length.clamp(0, truncated.length),
-        extentOffset: truncated.length.clamp(0, truncated.length),
-      ),
-      composing: TextRange.empty,
-    );
+    final result = _inner.formatEditUpdate(oldValue, newValue);
+    if (result.text != newValue.text) onOverflow(); // input ditolak/dipotong
+    return result;
   }
 }
 

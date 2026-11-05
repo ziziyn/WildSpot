@@ -42,34 +42,28 @@ class _DiscoveryData {
 const _kNearbyDiscoveries = [
   _DiscoveryData(
     category: 'Fauna',
-    imageUrl:
-        'https://images.unsplash.com/photo-1568526381923-caf3fd520382?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1568526381923-caf3fd520382?w=600&q=80',
     distance: '0.8 km away',
     name: 'MONARCH',
-    avatarUrl:
-        'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80',
+    avatarUrl: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80',
     author: 'Elena Woods',
     timeAgo: '12m ago',
   ),
   _DiscoveryData(
     category: 'Fungi',
-    imageUrl:
-        'https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=600&q=80',
     distance: '1.2 km away',
     name: 'RED-CAPPED',
-    avatarUrl:
-        'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
+    avatarUrl: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
     author: 'Marcus Moss',
     timeAgo: '45m ago',
   ),
   _DiscoveryData(
     category: 'Fauna',
-    imageUrl:
-        'https://images.unsplash.com/photo-1444464666168-49d633b86797?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1444464666168-49d633b86797?w=600&q=80',
     distance: '2.5 km away',
     name: 'BLUE JAY',
-    avatarUrl:
-        'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80',
+    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80',
     author: 'Sarah Leaf',
     timeAgo: '2h ago',
   ),
@@ -201,7 +195,10 @@ class _GreetingSection extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: 'Ranger ',
-                        style: tt.displayMedium!.copyWith(fontSize: 32, fontWeight: FontWeight.w800),
+                        style: tt.displayMedium!.copyWith(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const TextSpan(
                         text: '👋',
@@ -349,48 +346,48 @@ class LocalWeatherWidget extends StatelessWidget {
     // Cool, moody variant shared by cloudy and rainy. It derives from the
     // scheme's tertiary role, a blue-teal that M3 generates from the seed.
     _WeatherStyle cool(IconData icon) => _WeatherStyle(
-          icon: icon,
-          fill: cs.tertiaryContainer.withAlpha(200),
-          border: cs.tertiary.withAlpha(60),
-          glow: cs.tertiary.withAlpha(70),
-          iconGradient: [
-            Color.lerp(cs.tertiary, cs.onTertiary, 0.45)!,
-            cs.tertiary,
-            Color.lerp(cs.tertiary, cs.onTertiaryContainer, 0.5)!,
-          ],
-          onFill: cs.onTertiaryContainer,
-          onFillVariant: cs.onTertiaryContainer.withAlpha(200),
-        );
+      icon: icon,
+      fill: cs.tertiaryContainer.withAlpha(200),
+      border: cs.tertiary.withAlpha(60),
+      glow: cs.tertiary.withAlpha(70),
+      iconGradient: [
+        Color.lerp(cs.tertiary, cs.onTertiary, 0.45)!,
+        cs.tertiary,
+        Color.lerp(cs.tertiary, cs.onTertiaryContainer, 0.5)!,
+      ],
+      onFill: cs.onTertiaryContainer,
+      onFillVariant: cs.onTertiaryContainer.withAlpha(200),
+    );
 
     return switch (kind) {
       WeatherKind.sunny => _WeatherStyle(
-          icon: Icons.wb_sunny_rounded,
-          fill: brand.amberFaint.withAlpha(200),
-          border: brand.amber.withAlpha(50),
-          glow: brand.sun.withAlpha(90),
-          iconGradient: [
-            Color.lerp(brand.sun, cs.surfaceContainerLowest, 0.4)!,
-            brand.sun,
-            brand.amber,
-          ],
-          onFill: cs.onSurface,
-          onFillVariant: cs.onSurfaceVariant,
-        ),
+        icon: Icons.wb_sunny_rounded,
+        fill: brand.amberFaint.withAlpha(200),
+        border: brand.amber.withAlpha(50),
+        glow: brand.sun.withAlpha(90),
+        iconGradient: [
+          Color.lerp(brand.sun, cs.surfaceContainerLowest, 0.4)!,
+          brand.sun,
+          brand.amber,
+        ],
+        onFill: cs.onSurface,
+        onFillVariant: cs.onSurfaceVariant,
+      ),
       WeatherKind.cloudy => cool(Icons.cloud_rounded),
       WeatherKind.rainy => cool(Icons.water_drop_rounded),
       WeatherKind.night => _WeatherStyle(
-          icon: Icons.nightlight_round,
-          fill: cs.inverseSurface,
-          border: cs.tertiary.withAlpha(90),
-          glow: cs.tertiary.withAlpha(70),
-          iconGradient: [
-            cs.tertiaryContainer,
-            Color.lerp(cs.tertiaryContainer, cs.tertiary, 0.5)!,
-            cs.tertiary,
-          ],
-          onFill: cs.onInverseSurface,
-          onFillVariant: cs.onInverseSurface.withAlpha(200),
-        ),
+        icon: Icons.nightlight_round,
+        fill: cs.inverseSurface,
+        border: cs.tertiary.withAlpha(90),
+        glow: cs.tertiary.withAlpha(70),
+        iconGradient: [
+          cs.tertiaryContainer,
+          Color.lerp(cs.tertiaryContainer, cs.tertiary, 0.5)!,
+          cs.tertiary,
+        ],
+        onFill: cs.onInverseSurface,
+        onFillVariant: cs.onInverseSurface.withAlpha(200),
+      ),
     };
   }
 
@@ -486,21 +483,28 @@ class _DiscoveriesCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Your Discoveries',
-                  style: tt.titleLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(
+                'Your Discoveries',
+                style: tt.titleLarge!.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               GestureDetector(
                 onTap: () {},
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('VIEW ALL',
-                        style: tt.labelMedium!.copyWith(
-                            fontSize: 12,
-                            color: cs.primary,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'VIEW ALL',
+                      style: tt.labelMedium!.copyWith(
+                        fontSize: 12,
+                        color: cs.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(width: 2),
-                    Icon(Icons.chevron_right,
-                        color: cs.primary, size: 18),
+                    Icon(Icons.chevron_right, color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -542,44 +546,60 @@ class _DiscoveriesCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: context.wsBrand.amberFaint,
                   borderRadius: const BorderRadius.all(WsRadius.sm),
-                  border: Border.all(color: context.wsBrand.amber.withAlpha(60)),
+                  border: Border.all(
+                    color: context.wsBrand.amber.withAlpha(60),
+                  ),
                 ),
-                child: Icon(Icons.people_alt_outlined,
-                    color: context.wsBrand.amber, size: 18),
+                child: Icon(
+                  Icons.people_alt_outlined,
+                  color: context.wsBrand.amber,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('COMMUNITY IMPACT',
-                      style: tt.labelMedium!.copyWith(
-                          fontSize: 10,
-                          color: cs.outline,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    'COMMUNITY IMPACT',
+                    style: tt.labelMedium!.copyWith(
+                      fontSize: 10,
+                      color: cs.outline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('CONSERVATION HERO',
-                      style: tt.titleLarge!.copyWith(
-                          fontSize: 13,
-                          color: cs.onSurface,
-                          fontWeight: FontWeight.w800)),
+                  Text(
+                    'CONSERVATION HERO',
+                    style: tt.titleLarge!.copyWith(
+                      fontSize: 13,
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
               const Spacer(),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('CONTRIBUTIONS',
-                      style: tt.labelMedium!.copyWith(
-                          fontSize: 10,
-                          color: cs.outline,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    'CONTRIBUTIONS',
+                    style: tt.labelMedium!.copyWith(
+                      fontSize: 10,
+                      color: cs.outline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('+4 THIS WEEK',
-                      style: context.wsMono.stat.copyWith(
-                        fontSize: 13,
-                        color: cs.primary,
-                        fontWeight: FontWeight.w700,
-                      )),
+                  Text(
+                    '+4 THIS WEEK',
+                    style: context.wsMono.stat.copyWith(
+                      fontSize: 13,
+                      color: cs.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -627,8 +647,11 @@ class _ActiveMissionCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.topCenter,
                         heightFactor: 0.38,
-                        child: const Icon(Icons.military_tech,
-                            color: _kMedalRibbon, size: 22),
+                        child: const Icon(
+                          Icons.military_tech,
+                          color: _kMedalRibbon,
+                          size: 22,
+                        ),
                       ),
                     ),
                     // bintang kuning — clip bagian bawah 62%
@@ -636,8 +659,11 @@ class _ActiveMissionCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.bottomCenter,
                         heightFactor: 0.62,
-                        child: const Icon(Icons.military_tech,
-                            color: _kMedalStar, size: 22),
+                        child: const Icon(
+                          Icons.military_tech,
+                          color: _kMedalStar,
+                          size: 22,
+                        ),
                       ),
                     ),
                   ],
@@ -648,13 +674,18 @@ class _ActiveMissionCard extends StatelessWidget {
                 child: Text(
                   'Active Mission',
                   style: tt.titleLarge!.copyWith(
-                      fontSize: 15, color: cs.onPrimary, fontWeight: FontWeight.w800),
+                    fontSize: 15,
+                    color: cs.onPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               // STREAKING badge
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: cs.onPrimary.withAlpha(30),
                   borderRadius: const BorderRadius.all(WsRadius.pill),
@@ -663,14 +694,20 @@ class _ActiveMissionCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.local_fire_department_rounded,
-                        color: _kFlame, size: 14),
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      color: _kFlame,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
-                    Text('STREAKING',
-                        style: tt.labelMedium!.copyWith(
-                            fontSize: 10,
-                            color: cs.onPrimary,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'STREAKING',
+                      style: tt.labelMedium!.copyWith(
+                        fontSize: 10,
+                        color: cs.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -683,12 +720,18 @@ class _ActiveMissionCard extends StatelessWidget {
           Text(
             'Native Pollinator Census',
             style: tt.titleLarge!.copyWith(
-                fontSize: 18, color: cs.onPrimary, fontWeight: FontWeight.w700),
+              fontSize: 18,
+              color: cs.onPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Identify 5 different pollinator species in your local area.',
-            style: tt.bodyMedium!.copyWith(fontSize: 13, color: cs.onPrimary.withAlpha(200)),
+            style: tt.bodyMedium!.copyWith(
+              fontSize: 13,
+              color: cs.onPrimary.withAlpha(200),
+            ),
           ),
 
           const SizedBox(height: 16),
@@ -697,17 +740,22 @@ class _ActiveMissionCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Progress',
-                  style: tt.labelMedium!.copyWith(
-                      fontSize: 12,
-                      color: cs.onPrimary.withAlpha(180),
-                      fontWeight: FontWeight.w500)),
-              Text('3/5 (60%)',
-                  style: context.wsMono.stat.copyWith(
-                    fontSize: 12,
-                    color: cs.onPrimary,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                'Progress',
+                style: tt.labelMedium!.copyWith(
+                  fontSize: 12,
+                  color: cs.onPrimary.withAlpha(180),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '3/5 (60%)',
+                style: context.wsMono.stat.copyWith(
+                  fontSize: 12,
+                  color: cs.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -730,14 +778,18 @@ class _ActiveMissionCard extends StatelessWidget {
                 backgroundColor: cs.primaryContainer,
                 foregroundColor: cs.onPrimaryContainer,
                 shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(WsRadius.md)),
+                  borderRadius: BorderRadius.all(WsRadius.md),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: Text('View Mission Details',
-                  style: tt.bodyMedium!.copyWith(
-                      fontSize: 14,
-                      color: cs.onPrimaryContainer,
-                      fontWeight: FontWeight.w600)),
+              child: Text(
+                'View Mission Details',
+                style: tt.bodyMedium!.copyWith(
+                  fontSize: 14,
+                  color: cs.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
@@ -747,11 +799,7 @@ class _ActiveMissionCard extends StatelessWidget {
 }
 
 class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({
-    required this.progress,
-    this.trackColor,
-    this.fillColor,
-  });
+  const _ProgressBar({required this.progress, this.trackColor, this.fillColor});
   final double progress;
   final Color? trackColor;
   final Color? fillColor;
@@ -821,12 +869,22 @@ class _NearbyHeader extends StatelessWidget {
           child: Icon(Icons.radar, color: cs.primary, size: 13),
         ),
         const SizedBox(width: 8),
-        Text('Nearby Discoveries',
-            style: tt.titleLarge!.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(
+          'Nearby Discoveries',
+          style: tt.titleLarge!.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const Spacer(),
-        Text('Within 5km',
-            style: tt.labelMedium!.copyWith(
-                fontSize: 12, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+        Text(
+          'Within 5km',
+          style: tt.labelMedium!.copyWith(
+            fontSize: 12,
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -896,16 +954,19 @@ class _LoadMoreButton extends StatelessWidget {
           backgroundColor: cs.primary, // hijau pekat
           foregroundColor: cs.surfaceContainerLowest,
           shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(WsRadius.md)),
+            borderRadius: BorderRadius.all(WsRadius.md),
+          ),
           padding: const EdgeInsets.symmetric(vertical: 15),
         ),
         child: Text(
           'LOAD MORE NEARBY SPOTS',
-          style: tt.labelMedium!.copyWith(
-            fontSize: 12,
-            color: cs.surfaceContainerLowest,
-            fontWeight: FontWeight.w700,
-          ).copyWith(letterSpacing: 1.2),
+          style: tt.labelMedium!
+              .copyWith(
+                fontSize: 12,
+                color: cs.surfaceContainerLowest,
+                fontWeight: FontWeight.w700,
+              )
+              .copyWith(letterSpacing: 1.2),
         ),
       ),
     );
@@ -946,13 +1007,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _index == 0
           ? const HomePage()
           : _index == 1
-              ? const ExploreScreen()
-              : Center(
-                  child: Text(
-                    '${_titles[_index]} — coming soon',
-                    style: tt.bodyMedium!.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ),
+          ? const ExploreScreen()
+          : Center(
+              child: Text(
+                '${_titles[_index]} — coming soon',
+                style: tt.bodyMedium!.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ),
     );
   }
 }
