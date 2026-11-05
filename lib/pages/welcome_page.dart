@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
-import '../components/auth_widget.dart';
 
 import 'login_page.dart';
 
