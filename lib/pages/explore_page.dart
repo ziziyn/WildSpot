@@ -104,16 +104,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
           // Search bar
           const Positioned(top: 16, left: 16, right: 16, child: _SearchBar()),
 
-          // Kontrol peta (mengikuti tinggi sheet)
+          // FAB "Lokasi saya" (mengikuti tinggi sheet)
           ValueListenableBuilder<double>(
-            valueListenable: _extent,
-            builder: (_, e, child) => Positioned(
-              right: 16,
-              bottom: (h * e + 12).clamp(0.0, h - 200),
-              child: child!,
-            ),
-            child: const _MapActions(),
-          ),
+  valueListenable: _extent,
+  builder: (_, e, child) {
+    // Mulai memudar 15% sebelum sheet mencapai batas atas
+    final fade = ((maxExtent - e) / 0.15).clamp(0.0, 1.0);
+    return Positioned(
+      right: 16,
+      bottom: (h * e + 12).clamp(0.0, h - 200),
+      child: IgnorePointer(
+        ignoring: fade == 0,
+        child: Opacity(opacity: fade, child: child!),
+      ),
+    );
+  },
+  child: const _LocationFab(),
+),
 
           // Bottom sheet yang bisa di-drag dan di-scroll
           NotificationListener<DraggableScrollableNotification>(
@@ -153,28 +160,18 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/// Kontrol utilitas peta ("Lokasi saya" dan "Layers"), memakai tonal icon
-/// button M3. Halaman ini tidak memiliki FAB.
-class _MapActions extends StatelessWidget {
-  const _MapActions();
+/// Satu-satunya FAB di halaman ini: aksi utama peta, yaitu "Lokasi saya".
+/// Warna mengikuti `floatingActionButtonTheme` (core/app_theme.dart).
+class _LocationFab extends StatelessWidget {
+  const _LocationFab();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton.filledTonal(
-          onPressed: () {},
-          tooltip: 'Lokasi saya',
-          icon: const Icon(Icons.my_location),
-        ),
-        const SizedBox(height: 12),
-        IconButton.filledTonal(
-          onPressed: () {},
-          tooltip: 'Layers',
-          icon: const Icon(Icons.layers_outlined),
-        ),
-      ],
+    return FloatingActionButton(
+      heroTag: null,
+      onPressed: () {},
+      tooltip: 'Lokasi saya',
+      child: const Icon(Icons.my_location),
     );
   }
 }
