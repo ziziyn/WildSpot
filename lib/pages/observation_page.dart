@@ -1,49 +1,49 @@
 import 'dart:convert';
-
+ 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+ 
 import '../core/app_theme.dart';
 import '../components/discovery_card.dart';
 import 'camera_page.dart';
-
+ 
 // ============================================================
 // OBSERVATION PAGE
 // ============================================================
-
+ 
 class ObservationScreen extends StatefulWidget {
   const ObservationScreen({super.key});
-
+ 
   @override
   State<ObservationScreen> createState() => _ObservationPageState();
 }
-
+ 
 class _ObservationPageState extends State<ObservationScreen> {
   List<_Observation> _observations = [];
-
+ 
   bool _isLoading = true;
   bool _isLoadingMore = false;
-
+ 
   String? _errorMessage;
   String _selectedCategory = 'All';
-
+ 
   int _currentPage = 1;
-
+ 
   @override
   void initState() {
     super.initState();
     _fetchObservations();
   }
-
+ 
   @override
   void dispose() {
     super.dispose();
   }
-
+ 
   // ============================================================
   // FETCH OBSERVATIONS
   // ============================================================
-
+ 
   Map<String, String> _categoryQuery() {
     switch (_selectedCategory) {
       case 'Flora':
@@ -57,14 +57,14 @@ class _ObservationPageState extends State<ObservationScreen> {
         return {};
     }
   }
-
+ 
   Future<void> _fetchObservations() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _currentPage = 1;
     });
-
+ 
     try {
       final uri = Uri.https('api.inaturalist.org', '/v1/observations', {
         'per_page': '30',
@@ -75,23 +75,23 @@ class _ObservationPageState extends State<ObservationScreen> {
         'geo': 'true',
         ..._categoryQuery(),
       });
-
+ 
       final response = await http.get(uri);
-
+ 
       if (response.statusCode != 200) {
         throw Exception('API request failed');
       }
-
+ 
       final Map<String, dynamic> jsonData =
           jsonDecode(response.body) as Map<String, dynamic>;
-
+ 
       final List<dynamic> results = jsonData['results'] as List<dynamic>? ?? [];
-
+ 
       final observations = results
           .map((item) => _Observation.fromJson(item as Map<String, dynamic>))
           .where((item) => item.photoUrl.isNotEmpty)
           .toList();
-
+ 
       setState(() {
         _observations = observations;
         _isLoading = false;
@@ -103,31 +103,31 @@ class _ObservationPageState extends State<ObservationScreen> {
       });
     }
   }
-
+ 
   Future<void> _selectCategory(String category) async {
     if (_selectedCategory == category) return;
-
+ 
     setState(() {
       _selectedCategory = category;
     });
-
+ 
     await _fetchObservations();
   }
-
+ 
   // ============================================================
   // LOAD MORE
   // ============================================================
-
+ 
   Future<void> _loadMoreObservations() async {
     if (_isLoadingMore) return;
-
+ 
     setState(() {
       _isLoadingMore = true;
     });
-
+ 
     try {
       final nextPage = _currentPage + 1;
-
+ 
       final uri = Uri.https('api.inaturalist.org', '/v1/observations', {
         'per_page': '20',
         'page': '$nextPage',
@@ -137,23 +137,23 @@ class _ObservationPageState extends State<ObservationScreen> {
         'geo': 'true',
         ..._categoryQuery(),
       });
-
+ 
       final response = await http.get(uri);
-
+ 
       if (response.statusCode != 200) {
         throw Exception('API request failed');
       }
-
+ 
       final Map<String, dynamic> jsonData =
           jsonDecode(response.body) as Map<String, dynamic>;
-
+ 
       final List<dynamic> results = jsonData['results'] as List<dynamic>? ?? [];
-
+ 
       final newObservations = results
           .map((item) => _Observation.fromJson(item as Map<String, dynamic>))
           .where((item) => item.photoUrl.isNotEmpty)
           .toList();
-
+ 
       setState(() {
         _observations.addAll(newObservations);
         _currentPage = nextPage;
@@ -165,15 +165,15 @@ class _ObservationPageState extends State<ObservationScreen> {
       });
     }
   }
-
+ 
   // ============================================================
   // BUILD
   // ============================================================
-
+ 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return Container(
       color: cs.surface,
       child: SafeArea(
@@ -201,7 +201,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                 ],
               ),
             ),
-
+ 
             Positioned(
               right: 18,
               bottom: 24,
@@ -223,17 +223,17 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // CATEGORY TABS
   // ============================================================
-
+ 
   Widget _buildCategoryTabs() {
     final cs = Theme.of(context).colorScheme;
     final brand = context.wsBrand;
-
+ 
     const categories = ['All', 'Flora', 'Fauna', 'Fungi'];
-
+ 
     return Container(
       height: 72,
       padding: const EdgeInsets.all(4),
@@ -245,11 +245,11 @@ class _ObservationPageState extends State<ObservationScreen> {
       child: Row(
         children: categories.map((category) {
           final active = _selectedCategory == category;
-
+ 
           final categoryColor = category == 'All'
               ? cs.primary
               : discoveryCategoryColor(category, cs, brand);
-
+ 
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -288,20 +288,20 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // COMMUNITY HEADER
   // ============================================================
-
+ 
   Widget _buildCommunityHeader() {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return Row(
       children: [
         Icon(Icons.groups_rounded, color: cs.primary, size: 19),
         const SizedBox(width: 7),
         Text(
-          'Community Feed',
+          'Observation Logs',
           style: TextStyle(
             color: cs.primary,
             fontSize: 17,
@@ -311,11 +311,11 @@ class _ObservationPageState extends State<ObservationScreen> {
       ],
     );
   }
-
+ 
   // ============================================================
   // OBSERVATION CONTENT
   // ============================================================
-
+ 
   Widget _buildObservationContent() {
     if (_isLoading) {
       return const Padding(
@@ -323,17 +323,17 @@ class _ObservationPageState extends State<ObservationScreen> {
         child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
       );
     }
-
+ 
     if (_errorMessage != null) {
       return _buildErrorState();
     }
-
+ 
     final observations = _observations;
-
+ 
     if (observations.isEmpty) {
       return _buildEmptyState();
     }
-
+ 
     return Column(
       children: [
         ...observations.map(
@@ -347,14 +347,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ],
     );
   }
-
+ 
   // ============================================================
   // VIEW OTHER OBSERVATIONS
   // ============================================================
-
+ 
   Widget _buildViewOtherObservationsButton() {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return SizedBox(
       width: double.infinity,
       height: 44,
@@ -387,14 +387,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // OBSERVATION CARD
   // ============================================================
-
+ 
   Widget _buildObservationCard(_Observation observation) {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
@@ -427,7 +427,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                     if (loadingProgress == null) {
                       return child;
                     }
-
+ 
                     return Container(
                       color: cs.surface,
                       child: Center(
@@ -440,7 +440,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                   },
                 ),
               ),
-
+ 
               // CATEGORY
               Positioned(
                 left: 12,
@@ -453,7 +453,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                       cs,
                       brand,
                     );
-
+ 
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -475,16 +475,18 @@ class _ObservationPageState extends State<ObservationScreen> {
                   },
                 ),
               ),
-
+ 
               // STATUS
-              Positioned(
-                left: 12,
-                bottom: 12,
-                child: _buildStatusChip(observation.qualityGrade),
-              ),
+              if (observation.qualityGrade.toLowerCase() != 'needs_id' &&
+                  observation.qualityGrade.toLowerCase() != 'needs id')
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: _buildStatusChip(observation.qualityGrade)!,
+                ),
             ],
           ),
-
+ 
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 14),
             child: Column(
@@ -503,9 +505,9 @@ class _ObservationPageState extends State<ObservationScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
+ 
                 const SizedBox(height: 3),
-
+ 
                 Text(
                   observation.scientificName,
                   maxLines: 1,
@@ -516,9 +518,9 @@ class _ObservationPageState extends State<ObservationScreen> {
                     fontStyle: FontStyle.italic,
                   ),
                 ),
-
+ 
                 const SizedBox(height: 11),
-
+ 
                 // LOCATION
                 Row(
                   children: [
@@ -541,9 +543,9 @@ class _ObservationPageState extends State<ObservationScreen> {
                     ),
                   ],
                 ),
-
+ 
                 const SizedBox(height: 6),
-
+ 
                 // TIME
                 Row(
                   children: [
@@ -562,7 +564,7 @@ class _ObservationPageState extends State<ObservationScreen> {
                     ),
                   ],
                 ),
-
+ 
                 // TAGS
                 if (observation.tags.isNotEmpty) ...[
                   const SizedBox(height: 9),
@@ -601,53 +603,46 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // STATUS CHIP
   // ============================================================
-
-  Widget _buildStatusChip(String status) {
-    final cs = Theme.of(context).colorScheme;
-
+ 
+  Widget? _buildStatusChip(String status) {
     final normalizedStatus = status.toLowerCase();
-
-    final bool needsId =
-        normalizedStatus == 'needs_id' || normalizedStatus == 'needs id';
-
-    final Color statusColor = needsId ? context.wsBrand.amber : cs.primary;
-
-    final String displayStatus = status
+ 
+    // Sembunyikan status Needs ID
+    if (normalizedStatus == 'needs_id' || normalizedStatus == 'needs id') {
+      return null;
+    }
+ 
+    final cs = Theme.of(context).colorScheme;
+ 
+    final displayStatus = status
         .replaceAll('_', ' ')
         .split(' ')
         .map(
           (word) => word.isEmpty
               ? word
-              : '${word[0].toUpperCase()}'
-                    '${word.substring(1)}',
+              : '${word[0].toUpperCase()}${word.substring(1)}',
         )
         .join(' ');
-
+ 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.16),
+        color: cs.primary.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(9),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            needsId
-                ? Icons.help_outline_rounded
-                : Icons.check_circle_outline_rounded,
-            color: statusColor,
-            size: 12,
-          ),
+          Icon(Icons.check_circle_outline_rounded, color: cs.primary, size: 12),
           const SizedBox(width: 4),
           Text(
             displayStatus,
             style: TextStyle(
-              color: statusColor,
+              color: cs.primary,
               fontSize: 9,
               fontWeight: FontWeight.w700,
             ),
@@ -656,14 +651,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // ERROR STATE
   // ============================================================
-
+ 
   Widget _buildErrorState() {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Center(
@@ -703,14 +698,14 @@ class _ObservationPageState extends State<ObservationScreen> {
       ),
     );
   }
-
+ 
   // ============================================================
   // EMPTY STATE
   // ============================================================
-
+ 
   Widget _buildEmptyState() {
     final cs = Theme.of(context).colorScheme;
-
+ 
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
@@ -735,11 +730,11 @@ class _ObservationPageState extends State<ObservationScreen> {
     );
   }
 }
-
+ 
 // ============================================================
 // OBSERVATION MODEL
 // ============================================================
-
+ 
 class _Observation {
   final String commonName;
   final String scientificName;
@@ -749,7 +744,7 @@ class _Observation {
   final String photoUrl;
   final List<String> tags;
   final DateTime? observedAt;
-
+ 
   const _Observation({
     required this.commonName,
     required this.scientificName,
@@ -760,50 +755,50 @@ class _Observation {
     required this.tags,
     required this.observedAt,
   });
-
+ 
   factory _Observation.fromJson(Map<String, dynamic> json) {
     final taxon = json['taxon'] as Map<String, dynamic>? ?? {};
-
+ 
     // PHOTO
     final defaultPhoto =
         json['photos'] is List && (json['photos'] as List).isNotEmpty
         ? (json['photos'] as List).first as Map<String, dynamic>
         : null;
-
+ 
     String photoUrl = defaultPhoto?['url']?.toString() ?? '';
-
+ 
     if (photoUrl.contains('/square.')) {
       photoUrl = photoUrl.replaceFirst('/square.', '/medium.');
     }
-
+ 
     // LOCATION
     final String placeGuess = json['place_guess']?.toString().trim() ?? '';
-
+ 
     final String fallbackLocation = placeGuess.isEmpty
         ? 'Unknown location'
         : placeGuess;
-
+ 
     // SPECIES
     final String scientificName =
         taxon['name']?.toString() ?? 'Unknown species';
-
+ 
     final String commonName =
         taxon['preferred_common_name']?.toString() ?? scientificName;
-
+ 
     final String iconicTaxon =
         taxon['iconic_taxon_name']?.toString().trim() ?? '';
-
+ 
     final String category = switch (iconicTaxon) {
       'Plantae' => 'Flora',
       'Animalia' => 'Fauna',
       'Fungi' => 'Fungi',
       _ => 'Fauna',
     };
-
+ 
     // QUALITY GRADE
     final String qualityGrade =
         json['quality_grade']?.toString().trim() ?? 'Unknown';
-
+ 
     // TAGS
     final List<String> tags = (json['tags'] is List)
         ? (json['tags'] as List)
@@ -811,24 +806,24 @@ class _Observation {
               .where((tag) => tag.isNotEmpty)
               .toList()
         : <String>[];
-
+ 
     // DATE
     DateTime? observedAt;
-
+ 
     final String? createdAt = json['created_at']?.toString();
-
+ 
     if (createdAt != null && createdAt.isNotEmpty) {
       observedAt = DateTime.tryParse(createdAt)?.toLocal();
     }
-
+ 
     if (observedAt == null) {
       final String? observedOn = json['observed_on']?.toString();
-
+ 
       if (observedOn != null && observedOn.isNotEmpty) {
         observedAt = DateTime.tryParse(observedOn)?.toLocal();
       }
     }
-
+ 
     return _Observation(
       commonName: commonName,
       scientificName: scientificName,
@@ -840,38 +835,38 @@ class _Observation {
       observedAt: observedAt,
     );
   }
-
+ 
   // ============================================================
   // TIME AGO
   // ============================================================
-
+ 
   String get timeAgo {
     if (observedAt == null) {
       return 'Time unavailable';
     }
-
+ 
     final difference = DateTime.now().difference(observedAt!);
-
+ 
     if (difference.inMinutes < 60) {
       final minutes = difference.inMinutes;
-
+ 
       return '$minutes min ago';
     }
-
+ 
     if (difference.inHours < 24) {
       final hours = difference.inHours;
-
+ 
       return '$hours '
           '${hours == 1 ? 'hour' : 'hours'} ago';
     }
-
+ 
     final days = difference.inDays;
-
+ 
     if (days < 7) {
       return '$days '
           '${days == 1 ? 'day' : 'days'} ago';
     }
-
+ 
     return '${observedAt!.day}/'
         '${observedAt!.month}/'
         '${observedAt!.year}';
