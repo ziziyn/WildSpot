@@ -1,28 +1,86 @@
 ﻿import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+ 
 import '../core/app_theme.dart';
-
+ 
 import 'login_page.dart';
-
+ 
 // ===========================================================================
 // ASSETS
 // ===========================================================================
-
+ 
 const _kForestImage = 'assets/forest.jpeg';
-
+ 
 // ===========================================================================
 // WELCOME SCREEN
 // ===========================================================================
-
-class WelcomeScreen extends StatelessWidget {
+ 
+const _kSeenWelcomeKey = 'seen_welcome';
+ 
+/// Gerbang awal: Welcome hanya tampil saat pertama kali aplikasi dibuka.
+/// Pada pembukaan berikutnya user langsung diarahkan ke LoginScreen
+/// (shortcut untuk pengguna yang sering memakai aplikasi).
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
-
+ 
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+ 
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  late final Future<bool> _seenFuture = _loadSeen();
+ 
+  Future<bool> _loadSeen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_kSeenWelcomeKey) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+ 
+  Future<void> _markSeen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kSeenWelcomeKey, true);
+    } catch (_) {}
+  }
+ 
+  void _getStarted() {
+    _markSeen();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+ 
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _seenFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Scaffold(backgroundColor: context.wsBrand.forest);
+        }
+        if (snapshot.data!) {
+          return const LoginScreen();
+        }
+        return _WelcomeView(onGetStarted: _getStarted);
+      },
+    );
+  }
+}
+ 
+class _WelcomeView extends StatelessWidget {
+  const _WelcomeView({required this.onGetStarted});
+ 
+  final VoidCallback onGetStarted;
+ 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final brand = context.wsBrand;
-
+ 
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -43,7 +101,7 @@ class WelcomeScreen extends StatelessWidget {
               },
             ),
           ),
-
+ 
           // -----------------------------------------------------------------
           // GRADIENT OVERLAY
           // -----------------------------------------------------------------
@@ -61,7 +119,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-
+ 
           // -----------------------------------------------------------------
           // CONTENT
           // -----------------------------------------------------------------
@@ -73,11 +131,11 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   // Branding
                   const SizedBox(height: 100),
-
+ 
                   const Center(child: _Brand()),
-
+ 
                   const SizedBox(height: 120),
-
+ 
                   // -----------------------------------------------------------------
                   // HEADLINE
                   // -----------------------------------------------------------------
@@ -90,9 +148,9 @@ class WelcomeScreen extends StatelessWidget {
                       height: 1.05,
                     ),
                   ),
-
+ 
                   const SizedBox(height: 16),
-
+ 
                   // -----------------------------------------------------------------
                   // SUBTITLE
                   // -----------------------------------------------------------------
@@ -106,9 +164,9 @@ class WelcomeScreen extends StatelessWidget {
                       height: 1.35,
                     ),
                   ),
-
+ 
                   const SizedBox(height: 120),
-
+ 
                   // -----------------------------------------------------------------
                   // GET STARTED BUTTON
                   // -----------------------------------------------------------------
@@ -116,13 +174,7 @@ class WelcomeScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 58,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: onGetStarted,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: scheme.primaryContainer,
                         foregroundColor: scheme.onPrimaryContainer,
@@ -145,7 +197,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
+ 
                   const SizedBox(height: 10),
                 ],
               ),
@@ -156,19 +208,19 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 }
-
+ 
 // ===========================================================================
 // BRAND
 // ===========================================================================
-
+ 
 class _Brand extends StatelessWidget {
   const _Brand();
-
+ 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-
+ 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -177,7 +229,7 @@ class _Brand extends StatelessWidget {
         // -------------------------------------------------------------------
         Icon(Icons.eco_rounded, size: 69, color: scheme.primaryContainer),
         const SizedBox(height: 4),
-
+ 
         // -------------------------------------------------------------------
         // WILDSPOT
         // -------------------------------------------------------------------
@@ -198,21 +250,21 @@ class _Brand extends StatelessWidget {
             ],
           ),
         ),
-
+ 
         const SizedBox(height: 5),
-
+ 
         // -------------------------------------------------------------------
         // TAGLINE
         // -------------------------------------------------------------------
         Text(
-          'EXPLORE  â€¢  OBSERVE  â€¢  PROTECT',
-          style: text.labelSmall?.copyWith(
-            color: scheme.onPrimary,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 3.5,
-          ),
-        ),
+  'EXPLORE  \u2022  OBSERVE  \u2022  PROTECT',
+  style: text.labelSmall?.copyWith(
+    color: scheme.onPrimary,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 3.5,
+  ),
+),
       ],
     );
   }
