@@ -27,6 +27,7 @@ class CommunityPost {
     this.confirmCount = 0,
     this.isConfirmed = false,
     this.fieldNoteCount = 0,
+    this.commentCount = 0,
     this.isReported = false,
   });
 
@@ -53,6 +54,9 @@ class CommunityPost {
 
   /// Catatan lapangan yang sudah ditambahkan ke observasi ini.
   final int fieldNoteCount;
+
+  /// Jumlah komentar pada postingan ini.
+  final int commentCount;
 
   /// Gangguan habitat di sekitar observasi sudah dilaporkan.
   final bool isReported;
@@ -82,6 +86,7 @@ class CommunityPost {
     int? confirmCount,
     bool? isConfirmed,
     int? fieldNoteCount,
+    int? commentCount,
     bool? isReported,
   }) {
     return CommunityPost(
@@ -99,6 +104,7 @@ class CommunityPost {
       confirmCount: confirmCount ?? this.confirmCount,
       isConfirmed: isConfirmed ?? this.isConfirmed,
       fieldNoteCount: fieldNoteCount ?? this.fieldNoteCount,
+      commentCount: commentCount ?? this.commentCount,
       isReported: isReported ?? this.isReported,
     );
   }
@@ -111,11 +117,12 @@ class CommunityPost {
           other.isConfirmed == isConfirmed &&
           other.confirmCount == confirmCount &&
           other.fieldNoteCount == fieldNoteCount &&
+          other.commentCount == commentCount &&
           other.isReported == isReported;
 
   @override
   int get hashCode =>
-      Object.hash(id, isConfirmed, confirmCount, fieldNoteCount, isReported);
+      Object.hash(id, isConfirmed, confirmCount, fieldNoteCount, commentCount, isReported);
 }
 
 /// Grid publik untuk [LocationPrecision.obscured]. 0.1° ≈ 11 km di khatulistiwa.

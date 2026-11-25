@@ -1,29 +1,85 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+
 import '../components/bottom_nav.dart';
 import '../components/community_post_card.dart';
 import '../components/custom_app_bar.dart';
 import '../models/community_post.dart';
-import '../models/species_category.dart';
 import '../pages/profile_page.dart';
 import '../pages/settings_page.dart';
 import '../repositories/community_repository.dart';
 
-const double _kTabBarHeight = 48;
-const double _kFilterBarHeight = 56;
-const double _kPinnedHeaderHeight = _kTabBarHeight + _kFilterBarHeight;
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
 
-/// Ruang di ujung feed supaya pos terakhir tidak tertutup FAB.
-const double _kFeedClearance = 88;
+/// Height of the sticky TabBar row (shared pinned header).
+const double _kTabBarHeight = 48.0;
 
-/// Feed komunitas: tab Following / Discovery dan filter taksonomi tetap
-/// terkunci di atas saat daftar digulir.
+/// Height of the hide-on-scroll filter chip bar (Discovery only).
+const double _kFilterBarHeight = 48.0;
+
+/// Bottom clearance so the last post is never obscured by FAB + BottomNav.
+const double _kFeedClearance = 96.0;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEO-FILTER SERVICE  –  abstraction layer, GPS-ready
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Lightweight location abstraction — GPS-ready.
+///
+/// Swap [_deviceLat] / [_deviceLon] with a real `Geolocator.getCurrentPosition()`
+/// call once the `geolocator` package is added to pubspec.yaml.
+class _GeoFilterState {
+  _GeoFilterState._();
+
+  /// Simulated device position (Medan, Sumatera Utara).
+  static const double _deviceLat = 3.595;
+  static const double _deviceLon = 98.672;
+
+  /// Threshold: posts within 300 km of device appear in the Near You feed.
+  static const double _radiusKm = 300.0;
+
+  static double? distanceKm(CommunityPost post) {
+    final lat2 = post.publicLatitude;
+    final lon2 = post.publicLongitude;
+    if (lat2 == null || lon2 == null) return null;
+    return _haversineKm(_deviceLat, _deviceLon, lat2, lon2);
+  }
+
+  static bool isNearDevice(CommunityPost post) {
+    final d = distanceKm(post);
+    return d != null && d <= _radiusKm;
+  }
+
+  static double _haversineKm(
+      double lat1, double lon1, double lat2, double lon2) {
+    const r = 6371.0;
+    final dLat = _rad(lat2 - lat1);
+    final dLon = _rad(lon2 - lon1);
+    final a = math.pow(math.sin(dLat / 2), 2) +
+        math.cos(_rad(lat1)) *
+            math.cos(_rad(lat2)) *
+            math.pow(math.sin(dLon / 2), 2);
+    return r * 2 * math.asin(math.sqrt(a));
+  }
+
+  static double _rad(double deg) => deg * math.pi / 180.0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE WIDGET
+// ═══════════════════════════════════════════════════════════════════════════
+
 class CommunityPage extends StatefulWidget {
-  const CommunityPage({super.key, required this.repository, this.onTabChanged});
+  const CommunityPage({
+    super.key,
+    required this.repository,
+    this.onTabChanged,
+  });
 
   final CommunityRepository repository;
-
-  /// Mengganti tab bottom nav di [AppShell]. Null bila halaman berdiri sendiri.
   final ValueChanged<int>? onTabChanged;
 
   @override
@@ -36,8 +92,8 @@ class _CommunityPageState extends State<CommunityPage>
   late List<CommunityPost> _following;
   late List<CommunityPost> _discovery;
 
-  SpeciesCategory _category = SpeciesCategory.all;
-  bool _fabVisible = true;
+  bool _nearYou = false;
+  bool _discussionsOnly = false;
 
   @override
   void initState() {
@@ -53,146 +109,53 @@ class _CommunityPageState extends State<CommunityPage>
     super.dispose();
   }
 
-  bool _onUserScroll(UserScrollNotification notification) {
-    if (notification.metrics.axis != Axis.vertical) return false;
-    final show = notification.direction != ScrollDirection.reverse;
-    if (show != _fabVisible) setState(() => _fabVisible = show);
-    return false;
-  }
-
-  List<CommunityPost> _filtered(List<CommunityPost> posts) {
-    if (_category == SpeciesCategory.all) return posts;
-    return [
-      for (final post in posts)
-        if (post.category == _category) post,
-    ];
-  }
+  // ── State mutations ────────────────────────────────────────────────────────
 
   void _replace(CommunityPost post, CommunityPost Function(CommunityPost) map) {
-    CommunityPost? mapped(CommunityPost current) =>
-        current.id == post.id ? map(current) : null;
-
+    CommunityPost? mapped(CommunityPost c) =>
+        c.id == post.id ? map(c) : null;
     setState(() {
-      _following = [
-        for (final current in _following) mapped(current) ?? current,
-      ];
-      _discovery = [
-        for (final current in _discovery) mapped(current) ?? current,
-      ];
+      _following = [for (final c in _following) mapped(c) ?? c];
+      _discovery = [for (final c in _discovery) mapped(c) ?? c];
     });
   }
 
-  void _confirmId(CommunityPost post) {
+  void _toggleLike(CommunityPost post) {
     _replace(post, (current) {
-      final confirmed = !current.isConfirmed;
-      final nextCount = confirmed
-          ? current.confirmCount + 1
-          : current.confirmCount == 0
-          ? 0
-          : current.confirmCount - 1;
-      return current.copyWith(isConfirmed: confirmed, confirmCount: nextCount);
+      final liked = !current.isConfirmed;
+      return current.copyWith(
+        isConfirmed: liked,
+        confirmCount: liked
+            ? current.confirmCount + 1
+            : (current.confirmCount == 0 ? 0 : current.confirmCount - 1),
+      );
     });
   }
 
-  Future<void> _addFieldNote(CommunityPost post) async {
-    final note = TextEditingController();
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        final text = Theme.of(sheetContext).textTheme;
-        final inset = MediaQuery.viewInsetsOf(sheetContext).bottom;
-        return Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + inset),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Field Notes', style: text.titleLarge),
-              const SizedBox(height: 8),
-              Text(
-                'Record habitat, behavior, or uncertainty. Do not add a finer location.',
-                style: text.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: note,
-                minLines: 2,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                style: text.bodyMedium,
-                decoration: const InputDecoration(
-                  hintText: 'What did you observe?',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () =>
-                    Navigator.of(sheetContext).pop(note.text.trim().isNotEmpty),
-                child: const Text('Save note'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    note.dispose();
-    if (saved == true && mounted) {
-      _replace(
-        post,
-        (current) =>
-            current.copyWith(fieldNoteCount: current.fieldNoteCount + 1),
-      );
+  // ── Discovery filter pipeline ──────────────────────────────────────────────
+
+  List<CommunityPost> get _filteredDiscovery {
+    var posts = _discovery;
+    if (_nearYou) posts = posts.where(_GeoFilterState.isNearDevice).toList();
+    if (_discussionsOnly) {
+      posts = posts.where((p) => p.imageUrl == null).toList();
     }
+    return posts;
   }
 
-  Future<void> _reportDisturbance(CommunityPost post) async {
-    if (post.isReported) {
-      _replace(post, (current) => current.copyWith(isReported: false));
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        final text = Theme.of(dialogContext).textTheme;
-        return AlertDialog(
-          title: Text('Report', style: text.titleLarge),
-          content: Text(
-            'Report habitat disturbance near ${post.locationLabel}? The exact coordinates stay hidden.',
-            style: text.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Report'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed == true && mounted) {
-      _replace(post, (current) => current.copyWith(isReported: true));
-    }
-  }
+  // ── Search ─────────────────────────────────────────────────────────────────
 
   void _openSearch() {
-    final posts = [..._following, ..._discovery];
     showSearch<void>(
       context: context,
       delegate: _CommunitySearchDelegate(
-        posts: posts,
-        onConfirmId: _confirmId,
-        onFieldNotes: _addFieldNote,
-        onReport: _reportDisturbance,
+        posts: [..._following, ..._discovery],
+        onLike: _toggleLike,
       ),
     );
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -201,53 +164,49 @@ class _CommunityPageState extends State<CommunityPage>
         title: 'Community',
         onSearchTap: _openSearch,
         onNotificationTap: () {},
-        onSettingsTap: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
-        onProfileTap: () => Navigator.of(context)
-            .push(MaterialPageRoute<void>(builder: (_) => const ProfilePage())),
+        onSettingsTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+        ),
+        onProfileTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
+        ),
       ),
-      body: NotificationListener<UserScrollNotification>(
-        onNotification: _onUserScroll,
-        child: NestedScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
+      body: NestedScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverOverlapAbsorber(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            sliver: SliverPersistentHeader(
+              pinned: true,
+              // Shared header = TabBar only (48dp).
+              // Filter chips live inside each tab's feed.
+              delegate: _PinnedCommunityHeader(tabController: _tabCtrl),
+            ),
           ),
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverOverlapAbsorber(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                  context,
-                ),
-                sliver: SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _PinnedCommunityHeader(
-                    tabController: _tabCtrl,
-                    activeCategory: _category,
-                    onSelected: (category) =>
-                        setState(() => _category = category),
-                  ),
-                ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabCtrl,
-            children: [
-              _CommunityFeed(
-                posts: _filtered(_following),
-                onConfirmId: _confirmId,
-                onFieldNotes: _addFieldNote,
-                onReport: _reportDisturbance,
-              ),
-              _CommunityFeed(
-                posts: _filtered(_discovery),
-                onConfirmId: _confirmId,
-                onFieldNotes: _addFieldNote,
-                onReport: _reportDisturbance,
-              ),
-            ],
-          ),
+        ],
+        body: TabBarView(
+          controller: _tabCtrl,
+          children: [
+            // Following — clean chronological feed, no filter row.
+            _CommunityFeed(
+              posts: _following,
+              onLike: _toggleLike,
+            ),
+            // Discovery — has hide-on-scroll filter chip bar.
+            _CommunityFeed(
+              posts: _filteredDiscovery,
+              onLike: _toggleLike,
+              nearYouActive: _nearYou,
+              discussionsOnly: _discussionsOnly,
+              isNearYouFilter: _nearYou,
+              isDiscussionsFilter: _discussionsOnly,
+              onNearYouToggle: () => setState(() => _nearYou = !_nearYou),
+              onDiscussionsToggle: () =>
+                  setState(() => _discussionsOnly = !_discussionsOnly),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNav(
@@ -257,116 +216,43 @@ class _CommunityPageState extends State<CommunityPage>
           widget.onTabChanged?.call(index);
         },
       ),
-      floatingActionButton: IgnorePointer(
-        ignoring: !_fabVisible,
-        child: AnimatedSlide(
-          offset: _fabVisible ? Offset.zero : const Offset(0, 2),
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          child: AnimatedOpacity(
-            opacity: _fabVisible ? 1 : 0,
-            duration: const Duration(milliseconds: 220),
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Post Sighting is not available yet.'),
-                  ),
-                );
-              },
-              tooltip: 'Post Sighting',
-              icon: const Icon(Icons.add_location_alt_outlined),
-              label: Text(
-                'Post Sighting',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-          ),
+      // ── Regular FAB — icon only, no label ─────────────────────────────────
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FloatingActionButton(
+          onPressed: _onFabPressed,
+          tooltip: 'Post Sighting',
+          child: const Icon(Icons.add),
         ),
       ),
     );
   }
-}
 
-class _CommunityFeed extends StatelessWidget {
-  const _CommunityFeed({
-    required this.posts,
-    required this.onConfirmId,
-    required this.onFieldNotes,
-    required this.onReport,
-  });
-
-  final List<CommunityPost> posts;
-  final ValueChanged<CommunityPost> onConfirmId;
-  final ValueChanged<CommunityPost> onFieldNotes;
-  final ValueChanged<CommunityPost> onReport;
-
-  @override
-  Widget build(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          slivers: [
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            ),
-            if (posts.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    'No sightings in this category yet.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final post = posts[index];
-                  return CommunityPostCard(
-                    key: ValueKey(post.id),
-                    post: post,
-                    onConfirmId: () => onConfirmId(post),
-                    onFieldNotes: () => onFieldNotes(post),
-                    onReport: () => onReport(post),
-                  );
-                }, childCount: posts.length),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: _kFeedClearance)),
-          ],
-        );
-      },
+  void _onFabPressed() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Post Sighting is not available yet.')),
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PINNED HEADER DELEGATE  –  TabBar only (48dp)
+// ═══════════════════════════════════════════════════════════════════════════
+
 class _PinnedCommunityHeader extends SliverPersistentHeaderDelegate {
-  _PinnedCommunityHeader({
-    required this.tabController,
-    required this.activeCategory,
-    required this.onSelected,
-  });
+  _PinnedCommunityHeader({required this.tabController});
 
   final TabController tabController;
-  final SpeciesCategory activeCategory;
-  final ValueChanged<SpeciesCategory> onSelected;
 
   @override
-  double get minExtent => _kPinnedHeaderHeight;
+  double get minExtent => _kTabBarHeight;
 
   @override
-  double get maxExtent => _kPinnedHeaderHeight;
+  double get maxExtent => _kTabBarHeight;
 
   @override
-  bool shouldRebuild(_PinnedCommunityHeader oldDelegate) =>
-      oldDelegate.activeCategory != activeCategory ||
-      oldDelegate.tabController != tabController;
+  bool shouldRebuild(_PinnedCommunityHeader old) =>
+      old.tabController != tabController;
 
   @override
   Widget build(
@@ -383,49 +269,264 @@ class _PinnedCommunityHeader extends SliverPersistentHeaderDelegate {
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: cs.outlineVariant)),
         ),
-        child: Column(
-          children: [
-            SizedBox(
-              height: _kTabBarHeight,
-              child: TabBar(
-                controller: tabController,
-                indicator: UnderlineTabIndicator(
-                  borderSide: BorderSide(color: cs.primary, width: 2),
-                ),
-                labelColor: cs.primary,
-                unselectedLabelColor: cs.onSurfaceVariant,
-                labelStyle: text.labelLarge?.copyWith(color: cs.primary),
-                unselectedLabelStyle: text.labelLarge?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-                dividerColor: cs.outlineVariant,
-                tabs: const [
-                  Tab(text: 'Following'),
-                  Tab(text: 'Discovery'),
-                ],
-              ),
+        child: SizedBox(
+          height: _kTabBarHeight,
+          child: TabBar(
+            controller: tabController,
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(color: cs.primary, width: 2),
             ),
-            SizedBox(
-              height: _kFilterBarHeight,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            labelColor: cs.primary,
+            unselectedLabelColor: cs.onSurfaceVariant,
+            labelStyle: text.labelLarge?.copyWith(color: cs.primary),
+            unselectedLabelStyle:
+                text.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+            dividerColor: cs.outlineVariant,
+            tabs: const [
+              Tab(text: 'Following'),
+              Tab(text: 'Discovery'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEED WIDGET  –  with optional permanent filter chip bar
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _CommunityFeed extends StatelessWidget {
+  const _CommunityFeed({
+    required this.posts,
+    required this.onLike,
+    this.nearYouActive = false,
+    this.discussionsOnly = false,
+    this.isNearYouFilter = false,
+    this.isDiscussionsFilter = false,
+    this.onNearYouToggle,
+    this.onDiscussionsToggle,
+  });
+
+  final List<CommunityPost> posts;
+  final ValueChanged<CommunityPost> onLike;
+  final bool nearYouActive;
+  final bool discussionsOnly;
+  final bool isNearYouFilter;
+  final bool isDiscussionsFilter;
+  final VoidCallback? onNearYouToggle;
+  final VoidCallback? onDiscussionsToggle;
+
+  bool get hasFilterBar => onNearYouToggle != null;
+
+  @override
+  Widget build(BuildContext context) {
+    // Builder is required so that NestedScrollView.sliverOverlapAbsorberHandleFor
+    // receives the correct inner BuildContext from the TabBarView body.
+    return Builder(
+      builder: (ctx) => ColoredBox(
+        color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            // Absorbs the 48dp TabBar overlap so content starts at the right
+            // vertical position inside the NestedScrollView.
+            SliverOverlapInjector(
+              handle:
+                  NestedScrollView.sliverOverlapAbsorberHandleFor(ctx),
+            ),
+            // ── Pinned filter chip bar (Discovery only) ───────────────
+            // Lives inside the CustomScrollView as a pinned SliverPersistentHeader
+            // so it stays at the top while the list scrolls beneath it.
+            if (hasFilterBar)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _FilterBarDelegate(
+                  nearYouActive: nearYouActive,
+                  discussionsOnly: discussionsOnly,
+                  onNearYouToggle: onNearYouToggle!,
+                  onDiscussionsToggle: onDiscussionsToggle!,
                 ),
-                children: [
-                  for (final category in SpeciesCategory.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(category.label),
-                        selected: activeCategory == category,
-                        onSelected: (_) => onSelected(category),
-                        showCheckmark: false,
-                      ),
-                    ),
-                ],
               ),
+            // ── Post list / empty state ───────────────────────────────
+            if (posts.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState(ctx),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final post = posts[index];
+                    return CommunityPostCard(
+                      key: ValueKey(post.id),
+                      post: post,
+                      onLike: () => onLike(post),
+                    );
+                  },
+                  childCount: posts.length,
+                ),
+              ),
+            const SliverToBoxAdapter(
+                child: SizedBox(height: _kFeedClearance)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    if (isNearYouFilter) return const _NearYouEmptyState();
+    if (isDiscussionsFilter) return const _DiscussionsEmptyState();
+    return Center(
+      child: Text(
+        'No sightings here yet.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTER BAR DELEGATE  –  SliverPersistentHeaderDelegate, 48dp, pinned
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Renders the "Near You" + "Discussions" chip row as a pinned sliver header
+/// inside the Discovery feed's CustomScrollView.
+///
+/// Placing it inside the scroll view (not outside) is the correct pattern
+/// for NestedScrollView: it respects overlap absorption and stays pinned
+/// below the shared TabBar while the post list scrolls underneath.
+class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
+  const _FilterBarDelegate({
+    required this.nearYouActive,
+    required this.discussionsOnly,
+    required this.onNearYouToggle,
+    required this.onDiscussionsToggle,
+  });
+
+  final bool nearYouActive;
+  final bool discussionsOnly;
+  final VoidCallback onNearYouToggle;
+  final VoidCallback onDiscussionsToggle;
+
+  @override
+  double get minExtent => _kFilterBarHeight;
+
+  @override
+  double get maxExtent => _kFilterBarHeight;
+
+  @override
+  bool shouldRebuild(_FilterBarDelegate old) =>
+      old.nearYouActive != nearYouActive ||
+      old.discussionsOnly != discussionsOnly;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Material(
+      color: cs.surface,
+      elevation: 0,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+        ),
+        child: SizedBox(
+          height: _kFilterBarHeight,
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                // ── Near You ────────────────────────────────────────
+                FilterChip(
+                  showCheckmark: false,
+                  avatar: Icon(
+                    nearYouActive
+                        ? Icons.near_me
+                        : Icons.near_me_outlined,
+                    size: 16,
+                    color: nearYouActive
+                        ? cs.onSecondaryContainer
+                        : cs.onSurfaceVariant,
+                  ),
+                  label: const Text('Near You'),
+                  selected: nearYouActive,
+                  onSelected: (_) => onNearYouToggle(),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 0),
+                  labelPadding:
+                      const EdgeInsets.only(left: 2, right: 6),
+                ),
+                const SizedBox(width: 8),
+                // ── Discussions ──────────────────────────────────────
+                FilterChip(
+                  showCheckmark: false,
+                  avatar: Icon(
+                    Icons.forum_outlined,
+                    size: 16,
+                    color: discussionsOnly
+                        ? cs.onSecondaryContainer
+                        : cs.onSurfaceVariant,
+                  ),
+                  label: const Text('Discussions'),
+                  selected: discussionsOnly,
+                  onSelected: (_) => onDiscussionsToggle(),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 0),
+                  labelPadding:
+                      const EdgeInsets.only(left: 2, right: 6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEAR YOU EMPTY STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _NearYouEmptyState extends StatelessWidget {
+  const _NearYouEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_off_outlined,
+                size: 64, color: cs.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              'No sightings nearby',
+              style: text.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "We couldn't find any posts within your current radius. "
+              'Be the first to share a sighting!',
+              style: text.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -434,18 +535,57 @@ class _PinnedCommunityHeader extends SliverPersistentHeaderDelegate {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DISCUSSIONS EMPTY STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DiscussionsEmptyState extends StatelessWidget {
+  const _DiscussionsEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.forum_outlined,
+                size: 64, color: cs.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              'No discussions found',
+              style: text.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No text posts in this area yet. Start the conversation!',
+              style: text.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEARCH DELEGATE
+// ═══════════════════════════════════════════════════════════════════════════
+
 class _CommunitySearchDelegate extends SearchDelegate<void> {
-  _CommunitySearchDelegate({
-    required this.posts,
-    required this.onConfirmId,
-    required this.onFieldNotes,
-    required this.onReport,
-  });
+  _CommunitySearchDelegate({required this.posts, required this.onLike});
 
   final List<CommunityPost> posts;
-  final ValueChanged<CommunityPost> onConfirmId;
-  final ValueChanged<CommunityPost> onFieldNotes;
-  final ValueChanged<CommunityPost> onReport;
+  final ValueChanged<CommunityPost> onLike;
 
   @override
   String get searchFieldLabel => 'Search sightings';
@@ -463,13 +603,11 @@ class _CommunitySearchDelegate extends SearchDelegate<void> {
   }
 
   @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () => close(context, null),
-      tooltip: 'Back',
-      icon: const Icon(Icons.arrow_back),
-    );
-  }
+  Widget? buildLeading(BuildContext context) => IconButton(
+        onPressed: () => close(context, null),
+        tooltip: 'Back',
+        icon: const Icon(Icons.arrow_back),
+      );
 
   @override
   Widget buildResults(BuildContext context) => _results(context);
@@ -482,8 +620,8 @@ class _CommunitySearchDelegate extends SearchDelegate<void> {
     final hits = needle.isEmpty
         ? posts
         : [
-            for (final post in posts)
-              if (_matches(post, needle)) post,
+            for (final p in posts)
+              if (_matches(p, needle)) p,
           ];
 
     if (hits.isEmpty) {
@@ -503,26 +641,14 @@ class _CommunitySearchDelegate extends SearchDelegate<void> {
         return CommunityPostCard(
           key: ValueKey(post.id),
           post: post,
-          onConfirmId: () {
-            onConfirmId(post);
-            close(context, null);
-          },
-          onFieldNotes: () => _resume(context, () => onFieldNotes(post)),
-          onReport: () => _resume(context, () => onReport(post)),
+          onLike: () => onLike(post),
         );
       },
     );
   }
 
-  void _resume(BuildContext context, VoidCallback action) {
-    close(context, null);
-    WidgetsBinding.instance.addPostFrameCallback((_) => action());
-  }
-
-  bool _matches(CommunityPost post, String needle) {
-    return post.body.toLowerCase().contains(needle) ||
-        post.authorName.toLowerCase().contains(needle) ||
-        post.locationLabel.toLowerCase().contains(needle) ||
-        post.category.label.toLowerCase().contains(needle);
-  }
+  bool _matches(CommunityPost post, String needle) =>
+      post.body.toLowerCase().contains(needle) ||
+      post.authorName.toLowerCase().contains(needle) ||
+      post.locationLabel.toLowerCase().contains(needle);
 }
